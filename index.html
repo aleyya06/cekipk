@@ -1,263 +1,233 @@
 <!doctype html>
-<html lang="id" data-theme="light">
+<html lang="id">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Hitung IPK dari transkrip, simulasikan KRS semester demi semester mengikuti siklus Ganjil/Genap, dan lihat kapan Anda lulus.">
+<meta name="description" content="Hitung IPK dari transkrip, simulasikan KRS Ganjil/Genap, dan lihat kapan Anda lulus.">
 <title>Rencana IPK &amp; Kelulusan</title>
-<script>
-(function () {
-  var t = null;
-  try { t = localStorage.getItem('rencana-ipk-theme'); } catch (e) {}
-  if (t !== 'light' && t !== 'dark') {
-    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  document.documentElement.setAttribute('data-theme', t);
-})();
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script>
 tailwind.config = {
   theme: {
     extend: {
       colors: {
-        paper: 'rgb(var(--paper) / <alpha-value>)',
-        sheet: 'rgb(var(--sheet) / <alpha-value>)',
-        ink: 'rgb(var(--ink) / <alpha-value>)',
-        ink2: 'rgb(var(--ink2) / <alpha-value>)',
-        line: 'rgb(var(--line) / <alpha-value>)',
-        edge: 'rgb(var(--edge) / <alpha-value>)',
-        accent: 'rgb(var(--accent) / <alpha-value>)',
-        onaccent: 'rgb(var(--onaccent) / <alpha-value>)',
-        panel: 'rgb(var(--panel) / <alpha-value>)',
-        panel2: 'rgb(var(--panel2) / <alpha-value>)',
-        onpanel: 'rgb(var(--onpanel) / <alpha-value>)',
-        onpanel2: 'rgb(var(--onpanel2) / <alpha-value>)',
-        paneledge: 'rgb(var(--paneledge) / <alpha-value>)',
-        warn: 'rgb(var(--warn) / <alpha-value>)',
-        warnbg: 'rgb(var(--warnbg) / <alpha-value>)'
+        ink: '#0F172A', ink2: '#334155', ice: '#F0F7FF', cobalt: '#2563EB', sky: '#38BDF8',
+        peri: '#DBEAFE', peri2: '#C7D2FE', butter: '#FDE047', coral: '#FB7185', coralink: '#BE123C', mint: '#6EE7B7'
       },
       fontFamily: {
-        sans: ['"Source Sans 3"', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
-        serif: ['"Source Serif 4"', 'Georgia', 'Cambria', 'serif']
+        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+        display: ['"Space Grotesk"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'Consolas', 'monospace']
       }
     }
   }
 };
 </script>
 <style>
-  /*
-    Arah visual: lembar akademik tenang. Dial ENERGY 1 / RHYTHM 2 / MOTION 1.
-    Kertas hangat + angka serif tabular meniru transkrip cetak; garis ganda di bawah judul bagian adalah motif kop dokumen.
-    Hijau tua untuk aksi utama dan panel rekomendasi; bata untuk nilai C/D/E dan peringatan.
-    Badge biru/oranye/merah hanya untuk membedakan asal mata kuliah di timeline, selalu dengan label teks.
-  */
+  /* Neo-brutalism biru pilihan pemilik; latar titik dipertahankan atas permintaannya.
+     Peran aksen tetap: kuning = tertunda/Genap, coral = mengulang/peringatan, mint = target tercapai. */
   :root {
-    --paper: 243 238 227;
-    --sheet: 255 252 246;
-    --ink: 29 34 32;
-    --ink2: 84 90 84;
-    --line: 221 212 194;
-    --edge: 133 125 108;
-    --accent: 30 91 67;
-    --onaccent: 250 247 239;
-    --panel: 30 91 67;
-    --panel2: 36 105 79;
-    --onpanel: 250 247 239;
-    --onpanel2: 205 226 214;
-    --paneledge: 156 197 176;
-    --warn: 154 54 24;
-    --warnbg: 247 226 214;
-    --b-baru: 29 75 122;
-    --b-baru-bg: 221 232 244;
-    --b-tunda: 116 69 10;
-    --b-tunda-bg: 246 231 201;
-    --focus: var(--ink);
-    color-scheme: light;
-  }
-  [data-theme="dark"] {
-    --paper: 18 22 20;
-    --sheet: 26 31 28;
-    --ink: 234 228 213;
-    --ink2: 173 168 152;
-    --line: 47 54 49;
-    --edge: 115 126 118;
-    --accent: 134 198 166;
-    --onaccent: 14 33 26;
-    --panel: 23 59 45;
-    --panel2: 29 70 54;
-    --onpanel: 238 243 238;
-    --onpanel2: 185 209 195;
-    --paneledge: 127 168 148;
-    --warn: 240 165 132;
-    --warnbg: 59 35 26;
-    --b-baru: 168 203 239;
-    --b-baru-bg: 26 42 59;
-    --b-tunda: 237 194 127;
-    --b-tunda-bg: 56 42 20;
-    --focus: var(--ink);
-    color-scheme: dark;
+    --ink: #0F172A; --ink2: #334155; --ice: #F0F7FF; --dot: #BAE6FD;
+    --cobalt: #2563EB; --cobalt-dk: #1D4ED8; --sky: #38BDF8; --peri: #DBEAFE; --peri2: #C7D2FE;
+    --butter: #FDE047; --coral: #FB7185; --coral-ink: #BE123C; --mint: #6EE7B7;
   }
   [hidden] { display: none !important; }
-  html { background: rgb(var(--paper)); }
+  html { background: var(--ice); }
   body {
-    background: rgb(var(--paper));
-    color: rgb(var(--ink));
-    font-family: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-size: 1rem;
+    margin: 0;
+    color: var(--ink);
+    background-color: var(--ice);
+    background-image: radial-gradient(var(--dot) 1.3px, transparent 1.4px);
+    background-size: 22px 22px;
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
   }
-  .num { font-family: "Source Serif 4", Georgia, Cambria, serif; font-variant-numeric: lining-nums tabular-nums; }
-  :focus-visible { outline: 3px solid rgb(var(--focus)); outline-offset: 2px; }
-  .panel { --focus: var(--onpanel); }
+  .font-display { font-family: "Space Grotesk", "Plus Jakarta Sans", system-ui, sans-serif; letter-spacing: -0.01em; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
+  :focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; }
 
   .skip-link { position: absolute; left: -9999px; top: 0; }
-  .skip-link:focus { left: 1rem; top: 1rem; z-index: 50; background: rgb(var(--sheet)); color: rgb(var(--ink)); padding: .625rem .875rem; border: 1.5px solid rgb(var(--ink)); }
+  .skip-link:focus { left: 1rem; top: 1rem; z-index: 60; background: #fff; padding: .625rem .875rem; border: 2px solid var(--ink); border-radius: .75rem; }
 
-  .sec-head { display: flex; align-items: baseline; gap: .75rem; padding-bottom: .5rem; border-bottom: 3px double rgb(var(--ink)); }
-  .sec-num { font-family: "Source Serif 4", Georgia, serif; color: rgb(var(--ink2)); min-width: 1.75rem; font-size: 1.05rem; }
-  .sec-head h2 { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: clamp(1.375rem, 1.15rem + 1vw, 1.75rem); line-height: 1.2; }
-  .panel .sec-head { border-bottom-color: rgb(var(--onpanel)); }
-  .panel .sec-num { color: rgb(var(--onpanel2)); }
+  .card { background: #fff; border: 2px solid var(--ink); border-radius: 1rem; box-shadow: 4px 4px 0 var(--ink); }
+  .card-pad { padding: 1.125rem; }
+  @media (min-width: 640px) { .card-pad { padding: 1.5rem; } }
 
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .5rem 1rem; border-radius: 4px; font-weight: 600; border: 1.5px solid transparent; cursor: pointer; transition: background-color .15s ease, border-color .15s ease; text-align: center; }
-  .btn-primary { background: rgb(var(--accent)); color: rgb(var(--onaccent)); }
-  .btn-primary:hover { background: rgb(var(--accent) / .86); }
-  .btn-secondary { background: rgb(var(--sheet)); color: rgb(var(--ink)); border-color: rgb(var(--edge)); }
-  .btn-secondary:hover { border-color: rgb(var(--ink)); }
-  .btn-quiet { background: transparent; color: rgb(var(--ink)); text-decoration: underline; text-underline-offset: 3px; padding-inline: .5rem; }
-  .btn-quiet:hover { text-decoration-thickness: 2px; }
+  .sec-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
+  .sticker { display: inline-block; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: clamp(1.25rem, 1.05rem + 1vw, 1.625rem); line-height: 1.2;
+    padding: .3rem .9rem; border: 2px solid var(--ink); border-radius: .75rem; box-shadow: 3px 3px 0 var(--ink); background: var(--cobalt); color: #fff; }
+  .sticker.is-yellow { background: var(--butter); color: var(--ink); }
+  .sec-lead { color: var(--ink2); font-weight: 500; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .5rem 1rem; border: 2px solid var(--ink); border-radius: .75rem;
+    background: #fff; color: var(--ink); font-weight: 700; box-shadow: 4px 4px 0 var(--ink); cursor: pointer; transition: transform .08s ease, box-shadow .08s ease, background-color .12s ease; text-align: center; }
+  .btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+  .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
+  .btn-primary { background: var(--cobalt); color: #fff; }
+  .btn-primary:hover { background: var(--cobalt-dk); }
+  .btn-yellow { background: var(--butter); }
+  .btn-quiet { border: 0; box-shadow: none; background: transparent; text-decoration: underline; text-underline-offset: 3px; padding-inline: .5rem; font-weight: 600; }
+  .btn-quiet:hover, .btn-quiet:active { transform: none; box-shadow: none; text-decoration-thickness: 2px; }
   .btn[disabled] { opacity: .6; cursor: progress; }
 
-  .field { background: rgb(var(--sheet)); color: rgb(var(--ink)); border: 1.5px solid rgb(var(--edge)); border-radius: 4px; min-height: 44px; padding: .5rem .75rem; font: inherit; width: 100%; }
-  .field:hover { border-color: rgb(var(--ink)); }
-  .field[aria-invalid="true"] { border-color: rgb(var(--warn)); border-width: 2px; }
+  .field { background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: .75rem; min-height: 44px; padding: .5rem .75rem; font: inherit; width: 100%; }
+  .field:focus-visible { outline: 3px solid var(--cobalt); outline-offset: 1px; }
+  .field[aria-invalid="true"] { border-color: var(--coral-ink); background: #FFF1F2; }
   select.field { padding-right: 2rem; }
-  textarea.field { min-height: 9rem; line-height: 1.5; resize: vertical; }
-  .field-label { display: block; font-weight: 600; margin-bottom: .375rem; }
-  .field-hint { font-size: .875rem; color: rgb(var(--ink2)); margin-top: .375rem; }
-  .field-error { font-size: .875rem; color: rgb(var(--warn)); margin-top: .375rem; font-weight: 600; }
+  textarea.field { min-height: 9rem; line-height: 1.5; resize: vertical; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .85rem; }
+  .field-label { display: block; font-weight: 700; margin-bottom: .375rem; }
+  .field-hint { font-size: .875rem; color: var(--ink2); margin-top: .375rem; }
+  .field-error { font-size: .875rem; color: var(--coral-ink); margin-top: .375rem; font-weight: 700; }
 
-  .card { background: rgb(var(--sheet)); border: 1px solid rgb(var(--line)); border-radius: 6px; padding: 1.25rem; }
-  @media (min-width: 640px) { .card { padding: 1.5rem; } }
+  .pill { display: inline-flex; align-items: center; gap: .25rem; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .78rem; font-weight: 700; line-height: 1.4;
+    padding: .0625rem .5rem; border: 2px solid var(--ink); border-radius: 999px; background: #fff; color: var(--ink); white-space: nowrap; }
+  .pill-sky { background: var(--sky); }
+  .badge { display: inline-block; font-size: .75rem; font-weight: 800; line-height: 1.4; padding: .0625rem .5rem; border: 2px solid var(--ink); border-radius: 999px; white-space: nowrap; color: var(--ink); }
+  .badge-baru { background: var(--peri2); }
+  .badge-tunda { background: var(--butter); }
+  .badge-ulang { background: var(--coral); }
+  .chip { display: inline-block; font-size: .85rem; font-weight: 800; padding: .125rem .625rem; border: 2px solid var(--ink); border-radius: .5rem; color: var(--ink); }
+  .chip-mint { background: var(--mint); }
+  .chip-butter { background: var(--butter); }
+  .chip-coral { background: var(--coral); }
+  .chip-white { background: #fff; }
+  .chip-cobalt { background: var(--cobalt); color: #fff; }
+  .flag { display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; font-weight: 800; line-height: 1.35; padding: .0625rem .45rem .0625rem .1875rem; border: 2px solid var(--ink); border-radius: .5rem; background: #FFE4E6; color: var(--ink); white-space: nowrap; }
+  .flag::before { content: "!"; display: inline-grid; place-items: center; width: 1rem; height: 1rem; border-radius: 999px; background: var(--ink); color: #fff; font-size: .7rem; }
+  .flag-wait { background: var(--coral); }
 
-  .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .875rem 1.25rem; }
-  .facts dt { font-size: .875rem; color: rgb(var(--ink2)); }
-  .facts dd { font-family: "Source Serif 4", Georgia, serif; font-variant-numeric: lining-nums tabular-nums; font-size: 1.25rem; font-weight: 600; }
+  .stamp { display: inline-grid; place-items: center; min-width: 2.25rem; height: 2rem; padding: 0 .375rem; border: 2px solid var(--ink); border-radius: .5rem; font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: .9rem; background: var(--coral); }
 
-  .stamp { display: inline-grid; place-items: center; min-width: 2.25rem; height: 2rem; padding: 0 .375rem; border: 1.5px solid currentColor; border-radius: 2px; font-family: "Source Serif 4", Georgia, serif; font-weight: 700; font-size: .95rem; line-height: 1; }
-  .stamp-low { color: rgb(var(--warn)); background: rgb(var(--warnbg)); }
+  .notice { border: 2px solid var(--ink); border-radius: .875rem; padding: .75rem 1rem; background: var(--peri); box-shadow: 3px 3px 0 var(--ink); }
+  .notice.is-error { background: #FFE4E6; }
+  .notice.is-success { background: #D1FAE5; }
 
-  .status-chip { display: inline-block; font-size: .875rem; font-weight: 700; padding: .125rem .5rem; border-radius: 3px; border: 1.5px solid rgb(var(--edge)); color: rgb(var(--ink)); }
-  .status-chip.is-warn { border-color: rgb(var(--warn)); color: rgb(var(--warn)); background: rgb(var(--warnbg)); }
+  .dropzone { border: 2px dashed var(--ink); border-radius: 1rem; background: var(--peri); padding: 1.25rem; transition: background-color .12s ease; }
+  .dropzone.is-over { border-style: solid; background: var(--peri2); }
 
-  .badge { display: inline-block; font-size: .75rem; font-weight: 700; line-height: 1.35; padding: .0625rem .4375rem; border-radius: 3px; border: 1px solid currentColor; white-space: nowrap; }
-  .badge-baru { color: rgb(var(--b-baru)); background: rgb(var(--b-baru-bg)); }
-  .badge-tunda { color: rgb(var(--b-tunda)); background: rgb(var(--b-tunda-bg)); }
-  .badge-ulang { color: rgb(var(--warn)); background: rgb(var(--warnbg)); }
-  .flag { display: inline-block; font-size: .75rem; font-weight: 600; line-height: 1.35; padding: 0 .375rem; border-radius: 3px; border: 1px dashed rgb(var(--edge)); color: rgb(var(--ink2)); white-space: nowrap; }
-  .flag-wait { border-style: solid; border-color: rgb(var(--warn)); color: rgb(var(--warn)); }
-  .panel .flag { border-color: rgb(var(--paneledge)); color: rgb(var(--onpanel2)); }
-  .panel .flag-wait { border-color: rgb(var(--onpanel)); color: rgb(var(--onpanel)); }
+  /* Tooltip "?": tersembunyi sampai hover, fokus keyboard, atau ketuk. */
+  .tip-wrap { position: relative; display: inline-flex; vertical-align: middle; }
+  .tip-btn { position: relative; display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border: 2px solid var(--ink); border-radius: 999px; background: #fff; font-weight: 800; font-size: .85rem; cursor: help; box-shadow: 2px 2px 0 var(--ink); }
+  .tip-btn::after { content: ""; position: absolute; inset: -9px; }
+  .tip { display: none; position: absolute; top: calc(100% + .5rem); left: 0; z-index: 40; width: max-content; max-width: min(19rem, calc(100vw - 2rem));
+    background: var(--ink); color: #fff; font-size: .85rem; font-weight: 500; line-height: 1.5; padding: .625rem .75rem; border-radius: .75rem; box-shadow: 3px 3px 0 var(--cobalt); }
+  .tip-wrap:hover .tip, .tip-wrap.is-open .tip, .tip-btn:focus-visible + .tip { display: block; }
 
-  .dropzone { border: 2px dashed rgb(var(--edge)); border-radius: 6px; background: rgb(var(--sheet)); padding: 1.5rem 1.25rem; transition: border-color .15s ease, background-color .15s ease; }
-  .dropzone.is-over { border-style: solid; border-color: rgb(var(--accent)); background: rgb(var(--accent) / .07); }
+  /* Sakelar on/off: tetap checkbox asli agar bisa dipakai keyboard dan pembaca layar. */
+  .switch { position: relative; display: inline-flex; align-items: center; flex: none; min-height: 44px; cursor: pointer; }
+  .switch input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .switch .track { width: 3.25rem; height: 1.85rem; border: 2px solid var(--ink); border-radius: 999px; background: #fff; box-shadow: 2px 2px 0 var(--ink); position: relative; transition: background-color .15s ease; }
+  .switch .thumb { position: absolute; top: 2px; left: 2px; width: 1.25rem; height: 1.25rem; border: 2px solid var(--ink); border-radius: 999px; background: #fff; transition: transform .15s ease; }
+  .switch input:checked + .track { background: var(--cobalt); }
+  .switch input:checked + .track .thumb { transform: translateX(1.4rem); background: var(--butter); }
+  .switch input:focus-visible + .track { outline: 3px solid var(--cobalt); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { .switch .track, .switch .thumb, .btn, .tab { transition: none; } }
 
-  .notice { border: 1.5px solid rgb(var(--edge)); border-radius: 4px; padding: .75rem 1rem; background: rgb(var(--sheet)); }
-  .notice.is-error { border-color: rgb(var(--warn)); background: rgb(var(--warnbg)); color: rgb(var(--ink)); }
-  .notice.is-error .notice-title { color: rgb(var(--warn)); }
-  .notice.is-success { border-color: rgb(var(--accent)); }
+  /* Slider tebal: --pct diisi JavaScript agar bagian kiri berwarna cobalt. */
+  input[type="range"].slider { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; background: transparent; cursor: pointer; --pct: 50%; }
+  input[type="range"].slider::-webkit-slider-runnable-track { height: 14px; border: 2px solid var(--ink); border-radius: 999px; background: linear-gradient(to right, var(--cobalt) var(--pct), #fff var(--pct)); }
+  input[type="range"].slider::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -9px; border: 2px solid var(--ink); border-radius: .5rem; background: var(--butter); box-shadow: 2px 2px 0 var(--ink); }
+  input[type="range"].slider::-moz-range-track { height: 10px; border: 2px solid var(--ink); border-radius: 999px; background: #fff; }
+  input[type="range"].slider::-moz-range-progress { height: 10px; border-radius: 999px; background: var(--cobalt); }
+  input[type="range"].slider::-moz-range-thumb { width: 24px; height: 24px; border: 2px solid var(--ink); border-radius: .5rem; background: var(--butter); box-shadow: 2px 2px 0 var(--ink); }
+  input[type="range"].slider:focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; border-radius: .75rem; }
 
-  .tx-table { width: 100%; border-collapse: collapse; }
-  .tx-table th { text-align: left; font-weight: 600; font-size: .875rem; color: rgb(var(--ink2)); padding: .5rem; border-bottom: 1.5px solid rgb(var(--ink)); white-space: nowrap; }
-  .tx-table td { padding: .375rem .5rem; border-bottom: 1px solid rgb(var(--line)); vertical-align: middle; }
-  .tx-table .c-no { width: 2.75rem; color: rgb(var(--ink2)); }
+  .tabs { display: flex; flex-wrap: wrap; gap: .625rem; }
+  .tab { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding: .4rem .9rem; border: 2px solid var(--ink); border-radius: .75rem; background: #fff; font-weight: 800; box-shadow: 3px 3px 0 var(--ink); cursor: pointer; transition: transform .08s ease, box-shadow .08s ease; }
+  .tab:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .tab[aria-selected="true"] { background: var(--cobalt); color: #fff; }
+  .tab[aria-selected="true"] .pill { background: #fff; color: var(--ink); }
+
+  .tx-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .tx-table th { text-align: left; font-weight: 800; font-size: .8rem; color: var(--ink2); padding: .5rem; border-bottom: 2px solid var(--ink); white-space: nowrap; }
+  .tx-table td { padding: .375rem .5rem; border-bottom: 1px solid var(--peri2); vertical-align: middle; }
+  .tx-table .c-no { width: 2.75rem; color: var(--ink2); }
   .tx-table .c-sks select { width: 4.75rem; }
   .tx-table .c-grade select { width: 5.25rem; }
-  .tx-table .c-offer select, .tx-table .c-prio select { width: 8.25rem; }
+  .tx-table .c-offer select, .tx-table .c-prio select { width: 8.5rem; }
   .tx-table .c-mutu { width: 4.5rem; text-align: right; }
   .tx-table .c-act { width: 5.5rem; text-align: right; }
-  .term-note { display: block; font-size: .8125rem; color: rgb(var(--ink2)); margin-top: .125rem; }
+  .term-note { display: block; font-size: .78rem; color: var(--ink2); margin-top: .125rem; font-family: "JetBrains Mono", monospace; }
   .grade-wrap { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .5rem; }
-  .retake-mark { font-size: .8125rem; color: rgb(var(--warn)); font-weight: 700; white-space: nowrap; }
-  .is-retake .c-grade select { border-color: rgb(var(--warn)); }
+  .retake-mark { font-size: .78rem; color: var(--coral-ink); font-weight: 800; white-space: nowrap; }
+  .is-retake .c-grade select { border-color: var(--coral-ink); background: #FFF1F2; }
   .cell-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   @media (max-width: 639.98px) {
     .tx-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .tx-table, .tx-table tbody { display: block; }
-    .tx-table tr { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem .75rem; padding: .875rem 0; border-bottom: 1px solid rgb(var(--line)); }
+    .tx-table tr { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem .75rem; padding: .875rem 0; border-bottom: 1px solid var(--peri2); }
     .tx-table td { display: block; border: 0; padding: 0; width: auto !important; }
     .tx-table .c-no { display: none; }
     .tx-table .c-name { flex: 1 1 100%; }
     .tx-table .c-mutu { text-align: left; }
     .tx-table .c-mutu [data-mutu] { display: flex; align-items: center; min-height: 44px; }
     .tx-table .c-act { margin-left: auto; }
-    .tx-table .cell-label { position: static; width: auto; height: auto; clip: auto; display: block; font-size: .8125rem; color: rgb(var(--ink2)); margin-bottom: .25rem; }
+    .tx-table .cell-label { position: static; width: auto; height: auto; clip: auto; display: block; font-size: .78rem; color: var(--ink2); margin-bottom: .25rem; font-weight: 700; }
     .tx-table td.empty-cell { flex-basis: 100%; }
   }
 
-  .picker-item { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem .75rem; padding: .5rem; border-bottom: 1px solid rgb(var(--line)); }
-  .picker-item:hover { background: rgb(var(--paper)); }
-  .picker-main { display: flex; align-items: center; gap: .75rem; min-height: 48px; flex: 1 1 15rem; min-width: 0; cursor: pointer; }
-  .picker-main input { width: 1.25rem; height: 1.25rem; accent-color: rgb(var(--accent)); flex: none; }
+  details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; font-weight: 800; }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary::after { content: "+"; display: inline-grid; place-items: center; width: 2rem; height: 2rem; flex: none; border: 2px solid var(--ink); border-radius: .5rem; background: var(--butter); font-family: "JetBrains Mono", monospace; font-weight: 700; }
+  details.fold[open] > summary::after { content: "-"; }
+
+  .picker-item { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; padding: .625rem .25rem; border-bottom: 2px dashed var(--peri2); }
+  .picker-main { display: flex; align-items: center; gap: .75rem; flex: 1 1 15rem; min-width: 0; }
   .picker-opts { display: flex; flex-wrap: wrap; gap: .5rem .75rem; margin-left: auto; }
-  .picker-opts label { display: block; font-size: .8125rem; color: rgb(var(--ink2)); }
+  .picker-opts label { display: block; font-size: .75rem; font-weight: 700; color: var(--ink2); }
   .picker-opts select { width: 8.5rem; font-size: .9rem; }
   .check-row { display: flex; align-items: flex-start; gap: .75rem; min-height: 44px; cursor: pointer; }
-  .check-row input { width: 1.25rem; height: 1.25rem; margin-top: .2rem; accent-color: rgb(var(--accent)); flex: none; }
 
   .prio { list-style: none; margin: 0; padding: 0; }
-  .prio li { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) auto; gap: .25rem .75rem; padding: .875rem 0; border-top: 1px solid rgb(var(--paneledge) / .55); }
-  .prio .rank { font-family: "Source Serif 4", Georgia, serif; font-size: 1.125rem; color: rgb(var(--onpanel2)); }
-  .prio .effect { grid-column: 2 / -1; font-size: .9rem; color: rgb(var(--onpanel2)); }
-  .tag { display: inline-block; font-size: .8125rem; font-weight: 700; padding: .0625rem .5rem; border-radius: 3px; border: 1.5px solid rgb(var(--onpanel)); white-space: nowrap; }
-  .tag-strong { background: rgb(var(--onpanel)); color: rgb(var(--panel)); }
-  .tag-soft { color: rgb(var(--onpanel2)); border-color: rgb(var(--paneledge)); }
+  .prio li { display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: .25rem .75rem; padding: .875rem 0; border-top: 2px dashed var(--peri2); }
+  .prio .rank { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border: 2px solid var(--ink); border-radius: .5rem; background: var(--peri); font-family: "JetBrains Mono", monospace; font-weight: 700; }
+  .prio .effect { grid-column: 2 / -1; font-size: .875rem; color: var(--ink2); }
 
-  .bar { display: flex; height: 1.5rem; border: 1.5px solid rgb(var(--paneledge)); border-radius: 3px; background: rgb(var(--panel2)); overflow: hidden; }
-  .seg-new { background: rgb(var(--onpanel)); }
-  .seg-retake { background: repeating-linear-gradient(135deg, rgb(var(--onpanel)) 0 5px, rgb(var(--panel2)) 5px 9px); border-left: 2px solid rgb(var(--panel)); }
-  .swatch { display: inline-block; width: 1.25rem; height: .875rem; border: 1.5px solid rgb(var(--paneledge)); vertical-align: -1px; margin-right: .375rem; }
-  .krs-list li { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; padding: .3125rem 0; }
-  .alert-box { border: 1.5px solid rgb(var(--onpanel)); border-radius: 4px; padding: .875rem 1rem; background: rgb(var(--panel2)); }
+  .load-bar { display: flex; height: 1.5rem; border: 2px solid var(--ink); border-radius: .5rem; background: #fff; overflow: hidden; }
+  .load-bar .seg-new { background: var(--peri2); }
+  .load-bar .seg-retake { background: var(--coral); border-left: 2px solid var(--ink); }
+  .swatch { display: inline-block; width: 1.1rem; height: .9rem; border: 2px solid var(--ink); border-radius: .25rem; vertical-align: -2px; margin-right: .375rem; }
+  .krs-list li { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; padding: .375rem 0; border-top: 1px solid var(--peri2); }
+  .krs-list .badge { margin-right: .375rem; }
 
   .timeline { list-style: none; margin: 0; padding: 0; }
-  .tl-card { background: rgb(var(--sheet)); border: 1px solid rgb(var(--line)); border-radius: 6px; padding: 1rem 1.125rem; display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
-  .tl-card.is-locked { background: transparent; border: 1.5px dashed rgb(var(--edge)); }
-  .tl-card.is-extra { border: 1.5px solid rgb(var(--warn)); }
-  .tl-head { display: flex; justify-content: space-between; align-items: baseline; gap: .25rem .75rem; flex-wrap: wrap; }
-  .tl-bar { height: .5rem; background: rgb(var(--line)); border-radius: 2px; overflow: hidden; }
-  .tl-bar > span { display: block; height: 100%; background: rgb(var(--accent)); }
+  .tl-card { background: #fff; border: 2px solid var(--ink); border-radius: 1rem; box-shadow: 4px 4px 0 var(--ink); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+  .tl-card.is-locked { background: var(--peri); border-style: dashed; box-shadow: none; }
+  .tl-card.is-extra { box-shadow: 4px 4px 0 var(--coral-ink); }
+  .tl-head { display: flex; justify-content: space-between; align-items: center; gap: .25rem .75rem; flex-wrap: wrap; padding: .625rem 1rem; border-bottom: 2px solid var(--ink); }
+  .tl-head.is-ganjil { background: var(--cobalt); color: #fff; }
+  .tl-head.is-genap { background: var(--butter); color: var(--ink); }
+  .tl-head.is-locked { background: transparent; border-bottom-style: dashed; }
+  .tl-body { padding: .75rem 1rem 1rem; display: flex; flex-direction: column; gap: .75rem; }
+  .seg-bar { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 2px; padding: 3px; border: 2px solid var(--ink); border-radius: .5rem; background: #fff; }
+  .seg-bar span { height: .7rem; border-radius: 2px; background: #E2E8F0; }
+  .seg-bar.is-ok span.on { background: var(--sky); }
+  .seg-bar.is-full span.on { background: var(--butter); }
+  .seg-bar.is-over span.on { background: var(--coral); }
   .tl-items { list-style: none; margin: 0; padding: 0; }
-  .tl-items li { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .5rem; padding: .4375rem 0; border-top: 1px solid rgb(var(--line)); }
-  .tl-items .tl-name { flex: 1 1 8rem; min-width: 0; overflow-wrap: anywhere; }
+  .tl-items li { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .5rem; padding: .45rem 0; border-top: 1px solid var(--peri2); }
+  .tl-items .tl-name { flex: 1 1 8rem; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
 
   .data-table { width: 100%; border-collapse: collapse; font-size: .95rem; }
-  .data-table th, .data-table td { padding: .375rem .5rem; border-bottom: 1px solid rgb(var(--line)); text-align: right; }
+  .data-table th, .data-table td { padding: .375rem .5rem; border-bottom: 1px solid var(--peri2); text-align: right; }
   .data-table th:first-child, .data-table td:first-child { text-align: left; }
-  .data-table th { color: rgb(var(--ink2)); font-weight: 600; }
+  .data-table th { color: var(--ink2); font-weight: 800; }
 
-  input[type="range"].ips-range { width: 100%; min-height: 44px; accent-color: rgb(var(--accent)); }
-  details > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
-
-  .prose-notes li { margin-top: .5rem; }
-  .prose-notes { list-style: disc; padding-left: 1.25rem; }
+  .hl { font-family: "Space Grotesk", sans-serif; font-weight: 700; background: var(--butter); padding: 0 .3rem; border-radius: .375rem; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 </style>
 </head>
 <body>
 <a href="#main" class="skip-link">Langsung ke isi</a>
 
 <header class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
-  <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-    <div class="max-w-2xl">
-      <h1 class="font-serif font-semibold text-3xl sm:text-4xl leading-tight">Rencana IPK &amp; Kelulusan</h1>
-      <p class="mt-3 text-ink2 text-base sm:text-lg">Unggah transkrip, tetapkan target, lalu simulasikan KRS semester demi semester mengikuti siklus Ganjil/Genap: mata kuliah tertunda, mata kuliah wajib berikutnya, dan mata kuliah bernilai C yang layak diulang. Berkas dibaca di browser ini dan tidak dikirim ke server mana pun.</p>
-    </div>
-    <button id="theme-btn" type="button" class="btn btn-secondary shrink-0">Ganti ke mode gelap</button>
+  <div class="card card-pad" style="background: var(--cobalt); color: #fff;">
+    <p><span class="pill" style="background: var(--butter);">KRS Ganjil/Genap + target IPK</span></p>
+    <h1 class="font-display font-bold text-4xl sm:text-5xl leading-tight mt-1">Rencana IPK &amp; Kelulusan</h1>
+    <p class="mt-3 text-base sm:text-lg font-medium max-w-2xl">Unggah transkrip, geser target, lihat kapan Anda lulus. Semua dihitung di browser ini.</p>
   </div>
 </header>
 
@@ -267,37 +237,37 @@ tailwind.config = {
 
 <main id="main" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
 
-  <!-- I. Transkrip -->
-  <section id="transkrip" aria-labelledby="h-transkrip" class="mt-10 sm:mt-14 scroll-mt-4">
-    <div class="sec-head"><span class="sec-num" aria-hidden="true">I</span><h2 id="h-transkrip">Transkrip</h2></div>
+  <!-- Transkrip -->
+  <section id="transkrip" aria-labelledby="h-transkrip" class="mt-10 scroll-mt-4">
+    <div class="sec-head">
+      <h2 id="h-transkrip" class="sticker">Transkrip</h2>
+      <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan transkrip" aria-describedby="tip-transkrip">?</button><span role="tooltip" id="tip-transkrip" class="tip">PDF, XLSX, XLS, atau CSV. Tiap baris: nama, SKS 1-6, nilai A sampai E. Kolom semester (Gasal/Genap) ikut dibaca untuk menentukan Ganjil/Genap. Berkas tidak dikirim ke server.</span></span>
+    </div>
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-5">
+    <div class="mt-5 grid gap-5 lg:grid-cols-5">
       <div class="lg:col-span-3 min-w-0">
         <div id="dropzone" class="dropzone">
-          <p class="font-serif text-xl font-semibold">Tarik berkas transkrip ke kotak ini</p>
-          <p class="mt-1 text-ink2">PDF, XLSX, XLS, atau CSV. Tiap baris perlu memuat nama mata kuliah, SKS (1-6), dan nilai huruf A, AB, B, BC, C, D, atau E. Semester pengambilan (mis. "Gasal 2024/2025" atau kolom Semester) ikut dibaca untuk menentukan Ganjil/Genap.</p>
+          <p class="font-display text-xl font-bold">Tarik berkas transkrip ke sini</p>
+          <p class="mt-1 sec-lead">PDF, Excel, atau CSV dari portal akademik.</p>
           <div class="mt-4 flex flex-wrap gap-3">
             <button id="pick-btn" type="button" class="btn btn-primary">Pilih berkas transkrip</button>
-            <button id="demo-btn" type="button" class="btn btn-secondary">Muat data contoh</button>
+            <button id="demo-btn" type="button" class="btn btn-yellow">Muat data contoh</button>
           </div>
           <input id="file-input" type="file" accept=".pdf,.xlsx,.xls,.csv,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="sr-only" tabindex="-1" aria-hidden="true">
         </div>
-
         <div id="upload-status" class="mt-4" role="status" aria-live="polite"></div>
-        <p id="demo-note" class="mt-4 notice" hidden><span class="font-semibold">Data contoh sedang tampil.</span> Ini bukan transkrip siapa pun, hanya angka untuk mencoba alat. Unggah transkrip Anda untuk menggantinya.</p>
+        <p id="demo-note" class="mt-4 notice" hidden><span class="font-bold">Data contoh sedang tampil.</span> Bukan transkrip siapa pun; unggah transkrip Anda untuk menggantinya.</p>
       </div>
-
       <aside id="summary" class="lg:col-span-2 min-w-0" aria-live="polite" aria-label="Ringkasan transkrip"></aside>
     </div>
 
-    <div class="mt-10">
-      <div class="flex flex-wrap items-baseline justify-between gap-3">
-        <h3 class="font-serif text-xl font-semibold">Isi transkrip</h3>
+    <details id="tx-fold" class="fold card card-pad mt-6">
+      <summary><span><span class="font-display text-lg">Isi transkrip</span> <span id="tx-count" class="pill ml-1">0</span></span></summary>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="sec-lead">Ubah SKS, nilai, atau semester penawaran langsung di tabel.</p>
         <button id="clear-btn" type="button" class="btn btn-quiet" hidden>Kosongkan semua data</button>
       </div>
-      <p class="mt-1 text-ink2">Periksa hasil baca di sini. SKS, nilai, dan semester penawaran bisa diubah langsung; baris bernilai C, D, atau E ditandai <span class="text-warn font-semibold">bisa diulang</span>.</p>
-
-      <div class="mt-4">
+      <div class="mt-3">
         <table class="tx-table">
           <caption class="sr-only">Daftar mata kuliah di transkrip</caption>
           <thead>
@@ -315,9 +285,8 @@ tailwind.config = {
         </table>
         <button id="rows-toggle" type="button" class="btn btn-quiet mt-2" hidden></button>
       </div>
-
-      <form id="add-form" class="mt-6 card grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-start" novalidate>
-        <p class="font-semibold sm:col-span-2 lg:col-span-5">Tambah mata kuliah transkrip secara manual</p>
+      <form id="add-form" class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-start" novalidate>
+        <p class="font-bold sm:col-span-2 lg:col-span-5">Tambah mata kuliah manual</p>
         <div class="min-w-0 sm:col-span-2 lg:col-span-1">
           <label class="field-label" for="add-name">Nama mata kuliah</label>
           <input id="add-name" class="field" type="text" autocomplete="off" placeholder="Nama mata kuliah" aria-describedby="add-name-err">
@@ -339,59 +308,63 @@ tailwind.config = {
         <div class="lg:pt-[1.875rem]">
           <button type="submit" class="btn btn-primary w-full lg:w-auto">Tambah ke tabel</button>
         </div>
-        <p id="add-msg" class="sm:col-span-2 lg:col-span-5 text-ink2" role="status" aria-live="polite"></p>
+        <p id="add-msg" class="sm:col-span-2 lg:col-span-5 sec-lead" role="status" aria-live="polite"></p>
       </form>
-    </div>
+    </details>
   </section>
 
-  <!-- II. Posisi semester & target -->
-  <section id="target" aria-labelledby="h-target" class="mt-14 sm:mt-20 scroll-mt-4">
-    <div class="sec-head"><span class="sec-num" aria-hidden="true">II</span><h2 id="h-target">Posisi semester &amp; target</h2></div>
+  <!-- Posisi & target -->
+  <section id="target" aria-labelledby="h-target" class="mt-12 scroll-mt-4">
+    <div class="sec-head">
+      <h2 id="h-target" class="sticker is-yellow">Posisi &amp; target</h2>
+      <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan posisi dan target" aria-describedby="tip-target">?</button><span role="tooltip" id="tip-target" class="tip">Semester depan otomatis dihitung dari semester terakhir di transkrip. Ubah bila ada semester cuti. Semester yang sedang berjalan tidak diubah simulasi.</span></span>
+    </div>
+    <p class="mt-3 sec-lead">Geser slider, hasil di bawah langsung ikut berubah.</p>
 
-    <div class="mt-6 grid gap-5 sm:grid-cols-3">
-      <div>
-        <label class="field-label" for="p-total">Total SKS untuk lulus</label>
-        <input id="p-total" class="field num text-lg" type="number" inputmode="numeric" min="1" max="300" step="1" value="144" aria-describedby="p-total-hint p-total-err">
-        <p id="p-total-hint" class="field-hint">Lihat buku pedoman prodi. Umumnya 144.</p>
-        <p id="p-total-err" class="field-error" hidden></p>
-      </div>
-      <div>
-        <label class="field-label" for="p-max">Batas SKS per semester</label>
-        <input id="p-max" class="field num text-lg" type="number" inputmode="numeric" min="6" max="30" step="1" value="24" aria-describedby="p-max-hint p-max-err">
-        <p id="p-max-hint" class="field-hint">Ikuti batas dari IPS terakhir Anda. Minimal 6.</p>
-        <p id="p-max-err" class="field-error" hidden></p>
-      </div>
-      <div>
-        <label class="field-label" for="p-target">Target IPK akhir</label>
-        <input id="p-target" class="field num text-lg" type="number" inputmode="decimal" min="0" max="4" step="0.01" value="3.50" aria-describedby="p-target-hint p-target-err">
-        <p id="p-target-hint" class="field-hint">Antara 0.00 dan 4.00.</p>
+    <div class="mt-5 grid gap-5 md:grid-cols-2">
+      <div class="card card-pad">
+        <div class="flex items-end justify-between gap-3">
+          <label class="field-label mb-0" for="p-target">Target IPK akhir</label>
+          <input id="p-target" class="field mono text-lg font-bold" style="width: 6.5rem;" type="number" inputmode="decimal" min="0" max="4" step="0.01" value="3.50" aria-describedby="p-target-err">
+        </div>
+        <input id="p-target-range" class="slider mt-2" type="range" min="2" max="4" step="0.05" value="3.5" aria-label="Geser target IPK akhir">
+        <div class="flex justify-between mono text-xs font-bold" aria-hidden="true"><span>2.00</span><span>3.00</span><span>4.00</span></div>
         <p id="p-target-err" class="field-error" hidden></p>
+      </div>
+      <div class="card card-pad">
+        <div class="flex items-end justify-between gap-3">
+          <label class="field-label mb-0" for="p-max">Batas SKS per semester</label>
+          <input id="p-max" class="field mono text-lg font-bold" style="width: 6.5rem;" type="number" inputmode="numeric" min="6" max="30" step="1" value="24" aria-describedby="p-max-err">
+        </div>
+        <input id="p-max-range" class="slider mt-2" type="range" min="12" max="30" step="1" value="24" aria-label="Geser batas SKS per semester">
+        <div class="flex justify-between mono text-xs font-bold" aria-hidden="true"><span>12</span><span>21</span><span>30</span></div>
+        <p id="p-max-err" class="field-error" hidden></p>
       </div>
     </div>
 
-    <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mt-5 card card-pad grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
       <div>
         <label class="field-label" for="p-cur">Semester saat ini</label>
-        <input id="p-cur" class="field num text-lg" type="number" inputmode="numeric" min="1" max="14" step="1" aria-describedby="p-cur-hint p-cur-err">
+        <input id="p-cur" class="field mono text-lg" type="number" inputmode="numeric" min="1" max="14" step="1" aria-describedby="p-cur-hint p-cur-err">
         <p id="p-cur-hint" class="field-hint"></p>
         <p id="p-cur-err" class="field-error" hidden></p>
       </div>
       <div>
-        <p class="field-label">Status semester saat ini</p>
+        <p class="field-label">Sedang berjalan?</p>
         <label class="check-row" for="p-inprog">
-          <input id="p-inprog" type="checkbox" checked aria-describedby="p-inprog-hint">
-          <span>Sedang berjalan: KRS sudah terkunci, nilainya belum masuk transkrip</span>
+          <span class="switch"><input id="p-inprog" type="checkbox" role="switch" checked aria-describedby="p-inprog-hint"><span class="track" aria-hidden="true"><span class="thumb"></span></span></span>
+          <span class="pt-2 font-semibold">KRS terkunci, nilai belum keluar</span>
         </label>
-        <p id="p-inprog-hint" class="field-hint">Hapus centang bila semester ini sudah selesai dan nilainya sudah ada di transkrip.</p>
+        <p id="p-inprog-hint" class="field-hint">Matikan bila semester ini sudah selesai.</p>
         <div id="p-current-wrap" class="mt-3">
           <label class="field-label" for="p-current">SKS yang sedang diambil</label>
-          <input id="p-current" class="field num text-lg" type="number" inputmode="numeric" min="0" max="30" step="1" aria-describedby="p-current-hint p-current-err">
-          <p id="p-current-hint" class="field-hint">Mata kuliah baru semester ini. Keluarkan mata kuliah ini dari antrean di bagian III.</p>
+          <input id="p-current" class="field mono text-lg" type="number" inputmode="numeric" min="0" max="30" step="1" aria-describedby="p-current-hint p-current-err">
+          <p id="p-current-hint" class="field-hint">Keluarkan mata kuliah ini dari antrean.</p>
           <p id="p-current-err" class="field-error" hidden></p>
         </div>
       </div>
       <div>
-        <label class="field-label" for="p-next">Semester depan yang akan diambil</label>
+        <label class="field-label" for="p-next">Semester depan</label>
         <select id="p-next" class="field" aria-describedby="p-next-hint">
           <option value="auto">Otomatis</option>
           <option value="ganjil">Ganjil</option>
@@ -399,28 +372,41 @@ tailwind.config = {
         </select>
         <p id="p-next-hint" class="field-hint" aria-live="polite"></p>
       </div>
-      <div>
-        <label class="field-label" for="p-normal">Masa studi normal (semester)</label>
-        <input id="p-normal" class="field num text-lg" type="number" inputmode="numeric" min="1" max="14" step="1" value="8" aria-describedby="p-normal-hint p-normal-err">
-        <p id="p-normal-hint" class="field-hint">S1 umumnya 8 semester.</p>
-        <p id="p-normal-err" class="field-error" hidden></p>
+      <div class="grid gap-5">
+        <div>
+          <label class="field-label" for="p-total">Total SKS lulus</label>
+          <input id="p-total" class="field mono text-lg" type="number" inputmode="numeric" min="1" max="300" step="1" value="144" aria-describedby="p-total-err">
+          <p id="p-total-err" class="field-error" hidden></p>
+        </div>
+        <div>
+          <label class="field-label" for="p-normal">Masa studi normal</label>
+          <input id="p-normal" class="field mono text-lg" type="number" inputmode="numeric" min="1" max="14" step="1" value="8" aria-describedby="p-normal-err">
+          <p id="p-normal-err" class="field-error" hidden></p>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- III. Antrean mata kuliah -->
-  <section id="antrean" aria-labelledby="h-antrean" class="mt-14 sm:mt-20 scroll-mt-4">
-    <div class="sec-head"><span class="sec-num" aria-hidden="true">III</span><h2 id="h-antrean">Antrean mata kuliah</h2></div>
-    <p class="mt-3 text-ink2 max-w-3xl">Tiga sumber ini yang dijadwalkan simulasi KRS. Tiap mata kuliah punya semester penawaran (Ganjil, Genap, atau Keduanya); yang Ganjil hanya masuk ke semester ganjil, begitu juga Genap.</p>
+  <!-- Antrean -->
+  <section id="antrean" aria-labelledby="h-antrean" class="mt-12 scroll-mt-4">
+    <div class="sec-head">
+      <h2 id="h-antrean" class="sticker">Antrean mata kuliah</h2>
+      <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan antrean" aria-describedby="tip-antrean">?</button><span role="tooltip" id="tip-antrean" class="tip">Tiap mata kuliah punya semester penawaran: Ganjil, Genap, atau Keduanya. Yang Ganjil hanya masuk semester ganjil, begitu juga Genap.</span></span>
+    </div>
+    <p class="mt-3 sec-lead">Tiga sumber yang dijadwalkan simulasi KRS.</p>
 
-    <!-- Kategori A -->
-    <div class="mt-8 card">
-      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span class="badge badge-tunda">Tertunda</span>
-        <h3 class="font-serif text-xl font-semibold">Kategori A: mata kuliah tertunda</h3>
+    <div class="mt-5 tabs" role="tablist" aria-label="Kategori antrean">
+      <button id="tab-a" class="tab" type="button" role="tab" aria-selected="false" aria-controls="panel-a" tabindex="-1"><span class="badge badge-tunda">A</span> Tertunda <span id="count-a" class="pill">0</span></button>
+      <button id="tab-b" class="tab" type="button" role="tab" aria-selected="true" aria-controls="panel-b"><span class="badge badge-ulang">B</span> Mengulang <span id="count-b" class="pill">0</span></button>
+      <button id="tab-c" class="tab" type="button" role="tab" aria-selected="false" aria-controls="panel-c" tabindex="-1"><span class="badge badge-baru">K</span> Kurikulum <span id="count-c" class="pill">0</span></button>
+    </div>
+
+    <div id="panel-a" class="card card-pad mt-4" role="tabpanel" aria-labelledby="tab-a" tabindex="0" hidden>
+      <div class="flex flex-wrap items-center gap-2">
+        <h3 class="font-display text-xl font-bold">Mata kuliah tertunda</h3>
+        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan mata kuliah tertunda" aria-describedby="tip-a">?</button><span role="tooltip" id="tip-a" class="tip">Yang belum diambil atau terlewat karena batas SKS. Prasyarat dan wajib diisi paling awal di semester yang membukanya.</span></span>
       </div>
-      <p class="mt-1 text-ink2">Mata kuliah wajib, prasyarat, atau pilihan yang belum diambil atau terlewat karena batas SKS sudah penuh. Diprioritaskan paling awal di setiap semester yang membukanya.</p>
-      <div class="mt-4">
+      <div class="mt-3">
         <table class="tx-table">
           <caption class="sr-only">Mata kuliah tertunda</caption>
           <thead>
@@ -456,153 +442,133 @@ tailwind.config = {
         <div class="lg:pt-[1.875rem]">
           <button type="submit" class="btn btn-primary w-full lg:w-auto">Tambah ke antrean</button>
         </div>
-        <p id="a-msg" class="sm:col-span-2 lg:col-span-5 text-ink2" role="status" aria-live="polite"></p>
+        <p id="a-msg" class="sm:col-span-2 lg:col-span-5 sec-lead" role="status" aria-live="polite"></p>
       </form>
-      <details class="mt-2">
+      <details class="fold mt-2">
         <summary>Tempel banyak sekaligus</summary>
-        <label class="field-label mt-2" for="a-paste">Satu mata kuliah per baris: nama, SKS, ganjil/genap/keduanya, wajib/prasyarat/pilihan</label>
+        <label class="field-label mt-2" for="a-paste">Satu per baris: nama, SKS, ganjil/genap/keduanya, wajib/prasyarat/pilihan</label>
         <textarea id="a-paste" class="field" rows="4" spellcheck="false" placeholder="Nama mata kuliah, SKS, ganjil, wajib"></textarea>
-        <button id="a-paste-btn" type="button" class="btn btn-secondary mt-3">Tambahkan baris ke antrean</button>
+        <button id="a-paste-btn" type="button" class="btn mt-3">Tambahkan baris ke antrean</button>
       </details>
     </div>
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-2">
-      <!-- Kategori B -->
-      <div class="card min-w-0">
-        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span class="badge badge-ulang">Mengulang</span>
-          <h3 class="font-serif text-xl font-semibold">Kategori B: mata kuliah mengulang</h3>
-        </div>
-        <p class="mt-1 text-ink2">Terisi otomatis dari nilai C, D, dan E di transkrip, urut dari dampak ke IPK terbesar. Centang yang ingin diulang di jalur perbaikan.</p>
-        <p id="picker-hint" class="mt-2 text-sm text-ink2"></p>
-        <div id="picker" class="mt-3"></div>
-        <div id="picker-actions" class="mt-3 flex flex-wrap gap-2">
-          <button id="pick-rec" type="button" class="btn btn-secondary">Pakai rekomendasi</button>
-          <button id="pick-none" type="button" class="btn btn-quiet">Kosongkan pilihan</button>
-        </div>
+    <div id="panel-b" class="card card-pad mt-4" role="tabpanel" aria-labelledby="tab-b" tabindex="0">
+      <div class="flex flex-wrap items-center gap-2">
+        <h3 class="font-display text-xl font-bold">Mata kuliah mengulang</h3>
+        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan mata kuliah mengulang" aria-describedby="tip-b">?</button><span role="tooltip" id="tip-b" class="tip">Nyalakan sakelar untuk mengulang. Nilai lama diganti; SKS-nya tidak menambah SKS lulus tapi memakai kuota semester. Badge mint = kenaikan IPK akhir bila mencapai target (atau A).</span></span>
       </div>
+      <p id="picker-hint" class="mt-1 text-sm sec-lead"></p>
+      <div id="picker" class="mt-3"></div>
+      <div id="picker-actions" class="mt-4 flex flex-wrap gap-3">
+        <button id="pick-rec" type="button" class="btn">Pakai rekomendasi</button>
+        <button id="pick-none" type="button" class="btn btn-quiet">Matikan semua</button>
+      </div>
+    </div>
 
-      <!-- Sisa kurikulum -->
-      <div class="card min-w-0">
-        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span class="badge badge-baru">Baru</span>
-          <h3 class="font-serif text-xl font-semibold">Sisa mata kuliah kurikulum</h3>
+    <div id="panel-c" class="card card-pad mt-4" role="tabpanel" aria-labelledby="tab-c" tabindex="0" hidden>
+      <div class="flex flex-wrap items-center gap-2">
+        <h3 class="font-display text-xl font-bold">Sisa mata kuliah kurikulum</h3>
+        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Format daftar kurikulum" aria-describedby="tip-c">?</button><span role="tooltip" id="tip-c" class="tip">Format baris: nama, SKS, wajib/pilihan, ganjil/genap/keduanya, smt N. Jatah pilihan boleh satu baris berisi total SKS. Baris # diabaikan. Tugas Akhir dijadwalkan paling akhir.</span></span>
+      </div>
+      <div class="mt-3 grid gap-5 lg:grid-cols-5">
+        <div class="lg:col-span-3 min-w-0">
+          <label class="field-label" for="remaining">Daftar sisa mata kuliah</label>
+          <textarea id="remaining" class="field" rows="10" spellcheck="false" placeholder="Nama mata kuliah, SKS, wajib, genap, smt 6"></textarea>
+          <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <button id="preset-its" type="button" class="btn btn-yellow">Isi dari kurikulum S1 Matematika ITS 2023</button>
+            <a class="text-sm font-semibold underline underline-offset-2" href="https://www.its.ac.id/matematika/akademik/program-studi/sarjana/" target="_blank" rel="noopener">Sumber kurikulum</a>
+          </div>
         </div>
-        <p class="mt-1 text-ink2">Mata kuliah wajib dan pilihan semester berikutnya. Yang semester kurikulumnya sudah lewat otomatis dihitung tertunda.</p>
-        <label class="field-label mt-4" for="remaining">Daftar sisa mata kuliah</label>
-        <textarea id="remaining" class="field" rows="9" spellcheck="false" placeholder="Nama mata kuliah, SKS, wajib/pilihan, ganjil/genap/keduanya, smt 6" aria-describedby="remaining-hint"></textarea>
-        <p id="remaining-hint" class="field-hint">Satu mata kuliah per baris: nama, SKS, wajib atau pilihan, ganjil/genap/keduanya, lalu "smt N" untuk semester kurikulumnya (opsional). Jatah pilihan boleh ditulis satu baris berisi total SKS-nya. Baris yang diawali # diabaikan. Tugas akhir dijadwalkan setelah semua mata kuliah wajib lain.</p>
-        <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <button id="preset-its" type="button" class="btn btn-secondary">Isi dari kurikulum S1 Matematika ITS 2023</button>
-          <a class="text-sm underline underline-offset-2 text-ink2" href="https://www.its.ac.id/matematika/akademik/program-studi/sarjana/" target="_blank" rel="noopener">Sumber kurikulum</a>
-        </div>
-        <div id="remaining-info" class="mt-4 notice" aria-live="polite"></div>
+        <div id="remaining-info" class="lg:col-span-2 min-w-0 notice self-start" aria-live="polite"></div>
       </div>
     </div>
   </section>
 
   <!-- Hasil -->
-  <div id="results-empty" class="mt-14 sm:mt-20 card">
-    <p class="font-serif text-xl font-semibold">Perbandingan jalur, timeline KRS, dan grafik muncul di sini</p>
-    <p id="results-empty-text" class="mt-2 text-ink2">Isi transkrip dulu di <a class="underline underline-offset-2" href="#transkrip">bagian I</a>: unggah berkas, muat data contoh, atau tambah mata kuliah manual.</p>
+  <div id="results-empty" class="mt-12 card card-pad">
+    <p class="font-display text-xl font-bold">Hasil simulasi muncul di sini</p>
+    <p id="results-empty-text" class="mt-2 sec-lead">Unggah transkrip atau muat data contoh dulu.</p>
   </div>
 
   <div id="results" hidden>
-    <!-- IV. Perbandingan -->
-    <section id="perbandingan" aria-labelledby="h-perbandingan" class="mt-14 sm:mt-20 scroll-mt-4">
-      <div class="sec-head"><span class="sec-num" aria-hidden="true">IV</span><h2 id="h-perbandingan">Perbandingan jalur</h2></div>
-      <p id="verdict" class="mt-6 font-serif text-xl sm:text-2xl leading-snug max-w-4xl"></p>
-      <div class="mt-8 grid gap-6 lg:grid-cols-5">
-        <div id="compare" class="lg:col-span-3 grid gap-4 md:grid-cols-2 content-start min-w-0"></div>
+    <section id="perbandingan" aria-labelledby="h-perbandingan" class="mt-12 scroll-mt-4">
+      <div class="sec-head">
+        <h2 id="h-perbandingan" class="sticker is-yellow">Perbandingan jalur</h2>
+        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan IPS dibutuhkan" aria-describedby="tip-ips">?</button><span role="tooltip" id="tip-ips" class="tip">IPS dibutuhkan = rata-rata bobot untuk semua SKS mulai semester berjalan, termasuk mata kuliah ulang bertarget "Ikut IPS". Di atas 3.75 dianggap tidak realistis. Nilai E dihitung di IPK tapi bukan SKS lulus.</span></span>
+      </div>
+      <p id="verdict" class="mt-5 font-display text-xl sm:text-2xl font-bold leading-snug max-w-4xl"></p>
+      <div class="mt-6 grid gap-5 lg:grid-cols-5">
+        <div id="compare" class="lg:col-span-3 grid gap-5 md:grid-cols-2 content-start min-w-0"></div>
         <div id="sem-block" class="lg:col-span-2 min-w-0"></div>
       </div>
     </section>
 
-    <!-- V. Rekomendasi -->
-    <section id="rekomendasi" aria-labelledby="h-rekomendasi" class="panel mt-14 sm:mt-20 -mx-4 sm:mx-0 bg-panel text-onpanel sm:rounded-md px-4 py-8 sm:p-8 lg:p-10 scroll-mt-4">
-      <div class="sec-head"><span class="sec-num" aria-hidden="true">V</span><h2 id="h-rekomendasi">Rekomendasi strategi</h2></div>
-      <p class="mt-3 text-onpanel2 max-w-3xl">Disusun dari simulasi KRS dengan aturan yang tertulis di <a href="#catatan" class="underline underline-offset-2 text-onpanel">catatan perhitungan</a>. Berubah otomatis saat transkrip, posisi semester, atau antrean diubah.</p>
-
-      <div class="mt-8 grid gap-10 lg:grid-cols-2">
-        <div class="min-w-0">
+    <section id="rekomendasi" aria-labelledby="h-rekomendasi" class="mt-12 scroll-mt-4">
+      <div class="sec-head">
+        <h2 id="h-rekomendasi" class="sticker">Rekomendasi strategi</h2>
+        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan kategori target" aria-describedby="tip-rek">?</button><span role="tooltip" id="tip-rek" class="tip">Kategori dari IPS dibutuhkan: di bawah 3.20 ringan, 3.20-3.49 realistis, 3.50-3.85 menantang, 3.86-4.00 sangat berat, di atas 4.00 tidak mungkin tanpa mengulang.</span></span>
+      </div>
+      <div class="mt-5 grid gap-5 lg:grid-cols-2">
+        <div class="card card-pad min-w-0">
           <div id="advice"></div>
-          <div id="bottleneck" class="mt-8"></div>
-          <div class="mt-10">
-            <h3 class="font-serif text-xl font-semibold">Urutan mengulang dengan dampak terbesar</h3>
-            <p id="prio-hint" class="mt-1 text-onpanel2"></p>
-            <ol id="prio" class="prio mt-4"></ol>
+          <div id="bottleneck" class="mt-6"></div>
+        </div>
+        <div class="grid gap-5 content-start min-w-0">
+          <div id="krs" class="card card-pad"></div>
+          <div class="card card-pad">
+            <h3 class="font-display text-xl font-bold">Urutan mengulang dengan dampak terbesar</h3>
+            <p id="prio-hint" class="mt-1 text-sm sec-lead"></p>
+            <ol id="prio" class="prio mt-3"></ol>
           </div>
         </div>
-        <div class="min-w-0">
-          <div id="krs"></div>
-        </div>
       </div>
     </section>
 
-    <!-- VI. Timeline -->
-    <section id="timeline" aria-labelledby="h-timeline" class="mt-14 sm:mt-20 scroll-mt-4">
-      <div class="sec-head"><span class="sec-num" aria-hidden="true">VI</span><h2 id="h-timeline">Timeline rencana studi</h2></div>
-      <p id="tl-lead" class="mt-4 max-w-3xl"></p>
-      <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm" aria-label="Keterangan tanda">
-        <span><span class="badge badge-baru">Baru</span> mata kuliah kurikulum</span>
-        <span><span class="badge badge-tunda">Tertunda</span> terlewat sebelumnya</span>
-        <span><span class="badge badge-ulang">Mengulang</span> perbaikan nilai</span>
-        <span><span class="flag">Digeser karena batas SKS</span></span>
-        <span><span class="flag flag-wait">Menunggu 1 tahun</span></span>
+    <section id="timeline" aria-labelledby="h-timeline" class="mt-12 scroll-mt-4">
+      <div class="sec-head">
+        <h2 id="h-timeline" class="sticker is-yellow">Timeline studi</h2>
+        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Aturan penjadwalan" aria-describedby="tip-tl">?</button><span role="tooltip" id="tip-tl" class="tip">Ganjil dan Genap bergantian mulai semester depan. Urutan isi kuota: tertunda, wajib kurikulum, mengulang (dampak terbesar), Tugas Akhir, lalu pilihan. Yang tidak muat digeser ke semester sejenis berikutnya.</span></span>
       </div>
-      <ol id="tl-cards" class="timeline mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></ol>
+      <p id="tl-lead" class="mt-3 font-semibold max-w-3xl"></p>
+      <div class="mt-3 flex flex-wrap items-center gap-2 text-sm font-semibold" aria-label="Keterangan tanda">
+        <span class="badge badge-baru">Baru</span>
+        <span class="badge badge-tunda">Tertunda</span>
+        <span class="badge badge-ulang">Mengulang</span>
+        <span class="flag">Digeser karena batas SKS</span>
+        <span class="flag flag-wait">Menunggu 1 tahun</span>
+      </div>
+      <ol id="tl-cards" class="timeline mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3"></ol>
     </section>
 
-    <!-- VII. Proyeksi -->
-    <section id="proyeksi" aria-labelledby="h-proyeksi" class="mt-14 sm:mt-20 scroll-mt-4">
-      <div class="sec-head"><span class="sec-num" aria-hidden="true">VII</span><h2 id="h-proyeksi">Proyeksi IPK</h2></div>
-      <div class="mt-6 grid gap-6 lg:grid-cols-3">
-        <div class="lg:col-span-1 min-w-0">
-          <label for="ips-range" class="field-label">IPS yang diasumsikan tiap semester: <output id="ips-out" for="ips-range" class="num text-xl">-</output></label>
-          <input id="ips-range" class="ips-range" type="range" min="2" max="4" step="0.05" value="3.5" aria-describedby="ips-hint">
-          <p id="ips-hint" class="field-hint">Mata kuliah ulang tanpa target nilai dianggap mendapat nilai setara IPS ini. Awalnya diisi IPS yang dibutuhkan jalur perbaikan.</p>
-          <button id="ips-auto" type="button" class="btn btn-quiet mt-2 -ml-2">Kembali ke IPS yang dibutuhkan</button>
-          <p id="chart-caption" class="mt-4"></p>
+    <section id="proyeksi" aria-labelledby="h-proyeksi" class="mt-12 scroll-mt-4">
+      <div class="sec-head">
+        <h2 id="h-proyeksi" class="sticker">Proyeksi IPK</h2>
+      </div>
+      <div class="mt-5 grid gap-5 lg:grid-cols-3">
+        <div class="card card-pad lg:col-span-1 min-w-0">
+          <div class="flex items-center justify-between gap-3">
+            <label for="ips-range" class="field-label mb-0">IPS tiap semester</label>
+            <output id="ips-out" for="ips-range" class="pill pill-sky text-base">-</output>
+          </div>
+          <input id="ips-range" class="slider mt-2" type="range" min="2" max="4" step="0.05" value="3.5" aria-describedby="ips-hint">
+          <p id="ips-hint" class="field-hint">Mata kuliah ulang tanpa target dianggap mendapat nilai setara IPS ini.</p>
+          <button id="ips-auto" type="button" class="btn btn-quiet mt-1 -ml-2">Kembali ke IPS yang dibutuhkan</button>
+          <p id="chart-caption" class="mt-3 font-semibold"></p>
         </div>
-        <div class="lg:col-span-2 min-w-0">
-          <h3 id="chart-title" class="font-serif text-lg font-semibold"></h3>
+        <div class="card card-pad lg:col-span-2 min-w-0">
+          <h3 id="chart-title" class="font-display text-lg font-bold"></h3>
           <div class="relative mt-3 h-72 sm:h-80">
             <canvas id="ipk-chart" role="img" aria-label="Grafik proyeksi IPK"></canvas>
           </div>
-          <p id="chart-fallback" class="notice is-error mt-3" hidden><span class="notice-title font-semibold">Grafik tidak bisa digambar.</span> Pustaka Chart.js gagal dimuat (periksa koneksi internet). Angkanya tetap ada di tabel di bawah.</p>
-          <details class="mt-3">
-            <summary>Lihat angka grafik dalam tabel</summary>
+          <p id="chart-fallback" class="notice is-error mt-3" hidden><span class="font-bold">Grafik tidak bisa digambar.</span> Chart.js gagal dimuat; angkanya tetap ada di tabel di bawah.</p>
+          <details class="fold mt-3">
+            <summary>Angka grafik dalam tabel</summary>
             <div id="chart-table" class="mt-2 overflow-x-auto"></div>
           </details>
         </div>
       </div>
     </section>
   </div>
-
-  <!-- Catatan -->
-  <section id="catatan" aria-labelledby="h-catatan" class="mt-14 sm:mt-20 scroll-mt-4">
-    <div class="sec-head"><span class="sec-num" aria-hidden="true">VIII</span><h2 id="h-catatan">Catatan perhitungan</h2></div>
-    <div class="mt-6 grid gap-8 lg:grid-cols-2 text-[0.975rem]">
-      <ul class="prose-notes">
-        <li>Bobot nilai: A 4.0, AB 3.5, B 3.0, BC 2.5, C 2.0, D 1.0, E 0.0. Nilai B+ dan C+ dibaca sebagai AB dan BC.</li>
-        <li>IPK = jumlah (SKS × bobot) dibagi jumlah SKS semua mata kuliah di tabel.</li>
-        <li>Mengulang mengganti nilai lama. SKS mata kuliah ulang tidak menambah penyebut IPK dan tidak menambah SKS lulus, tetapi tetap memakai kuota SKS semester itu.</li>
-        <li>Nilai E ikut dihitung di IPK tetapi tidak dihitung sebagai SKS lulus. Mengulang mata kuliah bernilai E sekaligus menambah SKS lulus.</li>
-        <li>IPS yang dibutuhkan = rata-rata bobot untuk semua SKS mulai semester berjalan, termasuk mata kuliah ulang yang targetnya "Ikut IPS". Mata kuliah ulang dengan target nilai tertentu dihitung dengan nilai itu.</li>
-        <li>Urutan dampak mengulang = SKS × (bobot target - bobot lama). Tanpa target, bobot target dianggap 4.0 (A).</li>
-        <li>Batas IPS yang masih realistis dipatok 3.75. Kategori: di bawah 3.20 ringan, 3.20 sampai di bawah 3.50 realistis, 3.50 sampai 3.85 menantang, di atas 3.85 sampai 4.00 sangat berat, di atas 4.00 tidak mungkin tanpa mengulang.</li>
-      </ul>
-      <ul class="prose-notes">
-        <li>Simulasi berjalan semester demi semester mulai semester depan, bergantian Ganjil dan Genap. Semester yang sedang berjalan tidak diubah; SKS-nya dihitung sebagai SKS baru.</li>
-        <li>Di setiap semester hanya mata kuliah yang ditawarkan di semester itu (atau Keduanya) yang boleh masuk. Urutan pengisian kuota: tertunda prasyarat, tertunda wajib, wajib kurikulum yang semesternya sudah tiba, mengulang (dampak terbesar dulu), Tugas Akhir, lalu pilihan dan SKS yang belum terdaftar.</li>
-        <li>Mata kuliah yang tidak muat karena batas SKS ditandai "Digeser karena batas SKS" dan dicoba lagi di semester sejenis berikutnya. Bila ia baru masuk dua semester sesudah kesempatan pertamanya, ditandai "Menunggu 1 tahun".</li>
-        <li>Tugas Akhir dijadwalkan di semester yang sekaligus menyelesaikan semua sisa SKS. Jatah pilihan diambil secukupnya, minimal 2 SKS per semester. SKS yang belum ada di antrean dianggap pengisi sisa kuota dan bisa diambil di semester mana pun.</li>
-        <li>Semester lulus = nomor semester terakhir yang berisi mata kuliah. Dampak aturan Ganjil/Genap dihitung dengan membandingkan simulasi yang sama tanpa aturan itu. Semester pendek tidak dihitung.</li>
-        <li>Semester penawaran dibaca dari transkrip ("Gasal 2024/2025" atau nomor semester ganjil/genap) dan bisa diubah di tabel. Kode mata kuliah tidak dipakai karena tidak selalu cocok dengan semester kurikulumnya.</li>
-        <li>Aturan tiap kampus berbeda, misalnya batas SKS menurut IPS, nilai mana yang dipakai setelah mengulang, atau apakah nilai D dianggap lulus. Cocokkan dengan buku pedoman akademik Anda.</li>
-      </ul>
-    </div>
-  </section>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -622,8 +588,8 @@ tailwind.config = {
   var ROW_LIMIT = 10;
   var MAX_SIM_SEMESTERS = 24;
   var STORE_KEY = 'rencana-ipk-v1';
-  var THEME_KEY = 'rencana-ipk-theme';
   var TA_PATTERN = /tugas akhir|skripsi|thesis|tesis/i;
+  var COLORS = { ink: '#0F172A', ink2: '#334155', cobalt: '#2563EB', coral: '#FB7185', grid: '#C7D2FE' };
   var DEFAULT_PARAMS = { targetSks: 144, maxSks: 24, targetIpk: 3.5, normalSem: 8, currentSem: null, inProgress: true, currentSks: null, nextParity: 'auto' };
 
   // Data contoh: 39 mata kuliah dari 6 semester (jumlah per semester di DEMO_TERM_SIZES).
@@ -692,7 +658,6 @@ tailwind.config = {
   }
   function sumBy(list, fn) { return list.reduce(function (a, x) { return a + fn(x); }, 0); }
   function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
-  function cap1(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
   function normName(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
 
   function normalizeGrade(raw) {
@@ -703,7 +668,7 @@ tailwind.config = {
     return Object.prototype.hasOwnProperty.call(GRADE_POINTS, g) ? g : null;
   }
 
-  /* ---------- Ganjil / Genap ---------- */
+  // Ganjil / Genap
   function normOffer(v) {
     var s = String(v || '').toLowerCase();
     if (s === 'ganjil' || s === 'gasal') return 'ganjil';
@@ -732,7 +697,7 @@ tailwind.config = {
     return pairs.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === selected ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
   }
 
-  /* ---------- Penyimpanan lokal (hanya kenyamanan; aplikasi tetap jalan tanpa ini) ---------- */
+  // Penyimpanan lokal (hanya kenyamanan; aplikasi tetap jalan tanpa ini)
   function save() {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
@@ -782,8 +747,8 @@ tailwind.config = {
     state.isDemo = !!data.isDemo;
   }
 
-  /* ---------- Antrean: daftar teks ---------- */
-  // Format baris: nama, SKS, wajib/prasyarat/pilihan, ganjil/genap/keduanya, smt N. Baris yang diawali # adalah catatan.
+  // Antrean: daftar teks
+  // Format baris: nama, SKS, wajib/prasyarat/pilihan, ganjil/genap/keduanya, smt N. Baris yang diawali # adalah komentar.
   // SKS boleh sampai 24 supaya jatah pilihan bisa ditulis satu baris (mis. "MK Pilihan genap, 10, pilihan, genap").
   function parseRemaining(text) {
     var items = [], bad = [];
@@ -838,7 +803,7 @@ tailwind.config = {
     return lines.join('\n');
   }
 
-  /* ---------- Perhitungan ---------- */
+  // Perhitungan
   function summarize(courses) {
     var K = 0, Q = 0, earned = 0, byGrade = {};
     courses.forEach(function (c) {
@@ -877,9 +842,8 @@ tailwind.config = {
     return { no: no, parity: manual ? p.nextParity : autoPar, autoPar: autoPar, manual: manual, from: lastPar ? det.last : null };
   }
 
-  // Simulasi KRS semester demi semester, bergantian Ganjil/Genap mulai semester depan.
-  // Urutan isi kuota: tertunda prasyarat/wajib, wajib kurikulum yang semesternya tiba, mengulang (dampak terbesar),
-  // Tugas Akhir (hanya di semester yang menyelesaikan semua sisa), lalu pilihan dan SKS yang belum terdaftar.
+  // Urutan isi kuota tiap semester: tertunda, wajib yang semesternya tiba, mengulang (dampak terbesar),
+  // Tugas Akhir (hanya di semester yang menuntaskan semua sisa), lalu pilihan.
   function simulate(cfg) {
     var parityAt = function (i) { return cfg.startParity ? (i % 2 === 0 ? cfg.startParity : otherParity(cfg.startParity)) : null; };
     var fits = function (offer, parity) { return cfg.ignoreParity || !parity || offer === 'keduanya' || offer === parity; };
@@ -1030,6 +994,10 @@ tailwind.config = {
     'aman': 'Aman', 'ringan': 'Ringan', 'realistis': 'Realistis', 'menantang': 'Menantang',
     'sangat-berat': 'Sangat berat', 'mustahil': 'Tidak mungkin'
   };
+  var CLASS_CHIP = {
+    'aman': 'chip-mint', 'ringan': 'chip-mint', 'realistis': 'chip-mint', 'menantang': 'chip-butter',
+    'sangat-berat': 'chip-butter', 'mustahil': 'chip-coral'
+  };
 
   function analyze() {
     var sum = summarize(state.courses);
@@ -1108,7 +1076,7 @@ tailwind.config = {
     return pts;
   }
 
-  /* ---------- Pembacaan berkas ---------- */
+  // Pembacaan berkas
   var PDF_GRADE = /^(A|AB|B|BC|C|D|E|B\+|C\+)$/;
   var SKS_TOKEN = /^[1-6]$/;
   var SUMMARY_LINE = /\b(ipk|ips|total|jumlah|indeks prestasi)\b/i;
@@ -1358,22 +1326,22 @@ tailwind.config = {
     return parseLines(lines);
   }
 
-  /* ---------- Status unggah ---------- */
+  // Status unggah
   function setStatus(kind, message, extra) {
     var el = $('#upload-status');
     if (!kind) { el.innerHTML = ''; return; }
     var cls = kind === 'error' ? 'is-error' : kind === 'success' ? 'is-success' : '';
     var title = kind === 'error' ? 'Berkas tidak terbaca.' : kind === 'success' ? 'Transkrip terbaca.' : 'Sedang membaca...';
-    el.innerHTML = '<div class="notice ' + cls + '"><p><span class="notice-title font-semibold">' + title + '</span> ' + esc(message) + '</p>' + (extra || '') + '</div>';
+    el.innerHTML = '<div class="notice ' + cls + '"><p><span class="font-bold">' + title + '</span> ' + esc(message) + '</p>' + (extra || '') + '</div>';
   }
 
   function skippedDetails(skipped) {
     if (!skipped || !skipped.length) return '';
     var shown = skipped.slice(0, 12);
-    return '<details class="mt-2"><summary>' + skipped.length + ' baris dilewati karena SKS atau nilai tidak dikenali</summary>' +
-      '<ul class="mt-1 text-sm text-ink2 list-disc pl-5">' + shown.map(function (s) { return '<li class="break-words">' + esc(s) + '</li>'; }).join('') +
+    return '<details class="fold mt-2"><summary>' + skipped.length + ' baris dilewati</summary>' +
+      '<ul class="mt-1 text-sm list-disc pl-5">' + shown.map(function (s) { return '<li class="break-words">' + esc(s) + '</li>'; }).join('') +
       (skipped.length > shown.length ? '<li>dan ' + (skipped.length - shown.length) + ' baris lain</li>' : '') +
-      '</ul><p class="text-sm text-ink2 mt-1">Bila ada mata kuliah yang hilang, tambahkan lewat formulir di bawah tabel.</p></details>';
+      '</ul><p class="text-sm mt-1">Bila ada mata kuliah yang hilang, tambahkan lewat formulir di "Isi transkrip".</p></details>';
   }
 
   function duplicateNote(courses) {
@@ -1439,7 +1407,7 @@ tailwind.config = {
       save();
       renderTable();
       refresh();
-      setStatus('success', result.records.length + ' mata kuliah terbaca dari ' + file.name + '. Cocokkan dengan transkrip asli dan koreksi di tabel bila ada yang keliru.',
+      setStatus('success', result.records.length + ' mata kuliah terbaca dari ' + file.name + '. Cocokkan di "Isi transkrip" dan koreksi bila ada yang keliru.',
         duplicateNote(state.courses) + skippedDetails(result.skipped));
     } catch (err) {
       var msg = String(err && err.message || err);
@@ -1456,28 +1424,32 @@ tailwind.config = {
     }
   }
 
-  /* ---------- Render: ringkasan & tabel transkrip ---------- */
+  // Render: ringkasan & tabel transkrip
+  function statTile(label, value, extra, bg) {
+    return '<div class="card" style="padding: .625rem .75rem; box-shadow: 2px 2px 0 var(--ink);' + (bg ? ' background: ' + bg + ';' : '') + '">' +
+      '<p class="text-xs font-bold">' + label + '</p><p class="font-display text-2xl font-bold">' + value + '</p>' + (extra || '') + '</div>';
+  }
+
   function renderSummary(a) {
     var el = $('#summary');
     if (!a.sum.count) {
-      el.innerHTML = '<div class="card h-full"><p class="font-serif text-xl font-semibold">Belum ada data transkrip</p>' +
-        '<p class="mt-2 text-ink2">Unggah berkas atau muat data contoh. IPK saat ini, total SKS, dan jumlah mata kuliah yang bisa diulang muncul di sini.</p></div>';
+      el.innerHTML = '<div class="card card-pad h-full" style="background: var(--sky);"><p class="font-display text-xl font-bold">Belum ada transkrip</p>' +
+        '<p class="mt-2 font-medium">IPK, total SKS, dan mata kuliah yang bisa diulang muncul di sini.</p></div>';
       return;
     }
     var s = a.sum;
     var eSks = s.K - s.earned;
     var retakeSks = sumBy(a.plist, function (c) { return c.sks; });
-    var dist = GRADES.filter(function (g) { return s.byGrade[g]; }).map(function (g) { return g + ' ' + s.byGrade[g]; }).join(', ');
-    el.innerHTML = '<div class="card">' +
-      '<p class="text-ink2">IPK saat ini</p>' +
-      '<p class="num font-semibold text-6xl leading-none mt-1">' + fmt(s.ipk) + '</p>' +
-      '<dl class="facts mt-6">' +
-        '<div><dt>SKS ditempuh</dt><dd>' + s.K + '</dd></div>' +
-        '<div><dt>SKS lulus</dt><dd>' + s.earned + (eSks ? ' <span class="block text-sm font-normal text-ink2 font-sans">' + eSks + ' SKS bernilai E belum lulus</span>' : '') + '</dd></div>' +
-        '<div><dt>Mata kuliah</dt><dd>' + s.count + '</dd></div>' +
-        '<div><dt>Bisa diulang (C, D, E)</dt><dd>' + a.plist.length + ' <span class="text-base font-normal text-ink2">/ ' + retakeSks + ' SKS</span></dd></div>' +
-      '</dl>' +
-      '<p class="mt-5 text-sm text-ink2">Sebaran nilai: ' + esc(dist) + '</p>' +
+    el.innerHTML = '<div class="card card-pad h-full" style="background: var(--sky);">' +
+      '<p class="font-bold">IPK saat ini</p>' +
+      '<p class="font-display font-bold leading-none mt-1" style="font-size: clamp(3.5rem, 2.5rem + 5vw, 5rem);">' + fmt(s.ipk) + '</p>' +
+      '<div class="mt-5 grid grid-cols-2 gap-3">' +
+        statTile('SKS ditempuh', s.K) +
+        statTile('SKS lulus', s.earned, eSks ? '<p class="text-xs font-semibold">' + eSks + ' SKS nilai E</p>' : '') +
+        statTile('Mata kuliah', s.count) +
+        statTile('Bisa diulang', a.plist.length + ' <span class="mono text-sm">' + retakeSks + ' SKS</span>', '', 'var(--coral)') +
+      '</div>' +
+      '<p class="mt-4 flex flex-wrap gap-1.5">' + GRADES.filter(function (g) { return s.byGrade[g]; }).map(function (g) { return '<span class="pill">' + g + ' ' + s.byGrade[g] + '</span>'; }).join('') + '</p>' +
       '</div>';
   }
 
@@ -1492,18 +1464,18 @@ tailwind.config = {
     var retake = RETAKE_GRADES[c.grade];
     var id = esc(c.id);
     return '<tr data-id="' + id + '" class="' + (retake ? 'is-retake' : '') + '">' +
-      '<td class="c-no num">' + (i + 1) + '</td>' +
+      '<td class="c-no mono">' + (i + 1) + '</td>' +
       '<td class="c-name"><label class="cell-label" for="n-' + id + '">Mata kuliah baris ' + (i + 1) + '</label>' +
         '<input id="n-' + id + '" class="field" type="text" data-field="name" value="' + esc(c.name) + '" autocomplete="off">' +
         (c.term ? '<span class="term-note">' + esc(c.term) + '</span>' : '') + '</td>' +
       '<td class="c-sks"><label class="cell-label" for="s-' + id + '">SKS</label>' +
-        '<select id="s-' + id + '" class="field num" data-field="sks">' + optionList([1, 2, 3, 4, 5, 6], c.sks) + '</select></td>' +
+        '<select id="s-' + id + '" class="field mono" data-field="sks">' + optionList([1, 2, 3, 4, 5, 6], c.sks) + '</select></td>' +
       '<td class="c-grade"><label class="cell-label" for="g-' + id + '">Nilai</label><div class="grade-wrap">' +
-        '<select id="g-' + id + '" class="field num" data-field="grade">' + optionList(GRADES, c.grade) + '</select>' +
+        '<select id="g-' + id + '" class="field mono" data-field="grade">' + optionList(GRADES, c.grade) + '</select>' +
         '<span class="retake-mark"' + (retake ? '' : ' hidden') + '>bisa diulang</span></div></td>' +
       '<td class="c-offer"><label class="cell-label" for="o-' + id + '">Ditawarkan</label>' +
         '<select id="o-' + id + '" class="field" data-field="offer">' + offerOptions(courseOffer(c), !offerKnown(c)) + '</select></td>' +
-      '<td class="c-mutu num"><span class="cell-label">Mutu</span><span data-mutu>' + fmt(c.sks * GRADE_POINTS[c.grade], 1) + '</span></td>' +
+      '<td class="c-mutu mono"><span class="cell-label">Mutu</span><span data-mutu>' + fmt(c.sks * GRADE_POINTS[c.grade], 1) + '</span></td>' +
       '<td class="c-act"><button type="button" class="btn btn-quiet" data-action="delete" aria-label="Hapus ' + esc(c.name) + '">Hapus</button></td>' +
       '</tr>';
   }
@@ -1512,15 +1484,14 @@ tailwind.config = {
     var body = $('#tx-body');
     var rows = state.courses;
     var visible = state.showAll ? rows : rows.slice(0, ROW_LIMIT);
-    if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="7" class="empty-cell py-6 text-ink2">Tabel masih kosong. Unggah transkrip, muat data contoh, atau tambah mata kuliah lewat formulir di bawah.</td></tr>';
-    } else {
-      body.innerHTML = visible.map(rowHtml).join('');
-    }
+    body.innerHTML = rows.length
+      ? visible.map(rowHtml).join('')
+      : '<tr><td colspan="7" class="empty-cell py-6 sec-lead">Tabel masih kosong. Unggah transkrip, muat data contoh, atau tambah mata kuliah lewat formulir di bawah.</td></tr>';
     var toggle = $('#rows-toggle');
     toggle.hidden = rows.length <= ROW_LIMIT;
     toggle.textContent = state.showAll ? 'Ringkas ke ' + ROW_LIMIT + ' baris pertama' : 'Tampilkan semua ' + rows.length + ' mata kuliah';
     toggle.setAttribute('aria-expanded', String(state.showAll));
+    $('#tx-count').textContent = rows.length;
     $('#clear-btn').hidden = !rows.length;
     $('#demo-note').hidden = !state.isDemo || !rows.length;
   }
@@ -1533,14 +1504,14 @@ tailwind.config = {
     tr.querySelector('[data-action="delete"]').setAttribute('aria-label', 'Hapus ' + c.name);
   }
 
-  /* ---------- Render: Kategori A ---------- */
+  // Render: Kategori A
   function backlogRow(b) {
     var id = esc(b.id);
     return '<tr data-id="' + id + '">' +
       '<td class="c-name"><label class="cell-label" for="an-' + id + '">Mata kuliah</label>' +
         '<input id="an-' + id + '" class="field" type="text" data-field="name" value="' + esc(b.name) + '" autocomplete="off"></td>' +
       '<td class="c-sks"><label class="cell-label" for="as-' + id + '">SKS</label>' +
-        '<select id="as-' + id + '" class="field num" data-field="sks">' + optionList([1, 2, 3, 4, 5, 6], b.sks) + '</select></td>' +
+        '<select id="as-' + id + '" class="field mono" data-field="sks">' + optionList([1, 2, 3, 4, 5, 6], b.sks) + '</select></td>' +
       '<td class="c-offer"><label class="cell-label" for="ao-' + id + '">Ditawarkan</label>' +
         '<select id="ao-' + id + '" class="field" data-field="offer">' + offerOptions(b.offer) + '</select></td>' +
       '<td class="c-prio"><label class="cell-label" for="ap-' + id + '">Prioritas</label>' +
@@ -1552,10 +1523,16 @@ tailwind.config = {
   function renderBacklog() {
     $('#a-body').innerHTML = state.backlog.length
       ? state.backlog.map(backlogRow).join('')
-      : '<tr><td colspan="5" class="empty-cell py-5 text-ink2">Belum ada. Tambahkan mata kuliah yang dulu terlewat karena batas SKS, atau yang sengaja ditunda.</td></tr>';
+      : '<tr><td colspan="5" class="empty-cell py-5 sec-lead">Belum ada. Tambahkan mata kuliah yang terlewat karena batas SKS atau sengaja ditunda.</td></tr>';
+    $('#count-a').textContent = state.backlog.length;
   }
 
-  /* ---------- Render: posisi semester ---------- */
+  // Render: posisi semester
+  function syncSlider(range) {
+    var min = Number(range.min), max = Number(range.max), v = clamp(Number(range.value), min, max);
+    range.style.setProperty('--pct', ((v - min) / (max - min) * 100).toFixed(1) + '%');
+  }
+
   function readParams() {
     var p = state.params;
     p.inProgress = $('#p-inprog').checked;
@@ -1585,12 +1562,26 @@ tailwind.config = {
       } else {
         valid = false;
         if (f.key === 'currentSem') p.currentSem = null;
+        // Sebelum ada transkrip, semester kosong belum dianggap salah isi.
+        if (f.key === 'currentSem' && raw === '' && !state.courses.length) {
+          input.removeAttribute('aria-invalid');
+          err.hidden = true;
+          return;
+        }
         input.setAttribute('aria-invalid', 'true');
         err.textContent = f.msg;
         err.hidden = false;
       }
     });
     state.paramsValid = valid;
+  }
+
+  function syncSlidersFromParams() {
+    var t = $('#p-target-range'), m = $('#p-max-range');
+    t.value = String(clamp(state.params.targetIpk, Number(t.min), Number(t.max)));
+    m.value = String(clamp(state.params.maxSks, Number(m.min), Number(m.max)));
+    syncSlider(t);
+    syncSlider(m);
   }
 
   function syncParamInputs() {
@@ -1605,14 +1596,15 @@ tailwind.config = {
     $('#p-current-wrap').hidden = !p.inProgress;
     $('#p-next').value = p.nextParity;
     $('#remaining').value = state.remainingText;
+    syncSlidersFromParams();
   }
 
   function renderPositionHints() {
     var p = state.params;
     var det = detectSemesters(state.courses);
     $('#p-cur-hint').textContent = det
-      ? 'Transkrip berisi ' + det.count + ' semester bernilai (' + det.first + (det.count > 1 ? ' sampai ' + det.last : '') + '). Setelah unggah, isian ini diisi semester ' + Math.min(14, det.count + 1) + ' yang sedang berjalan; ubah bila keliru, misalnya ada semester cuti.'
-      : 'Semester yang sedang Anda tempuh, atau yang baru selesai.';
+      ? 'Transkrip: ' + det.count + ' semester bernilai (' + det.first + (det.count > 1 ? ' sampai ' + det.last : '') + ').'
+      : 'Semester yang sedang ditempuh atau baru selesai.';
     var next = nextInfo(state.courses, p);
     var opt = $('#p-next').querySelector('option[value="auto"]');
     if (!next) {
@@ -1621,20 +1613,17 @@ tailwind.config = {
       return;
     }
     opt.textContent = 'Otomatis (' + offerLabel(next.autoPar) + ')';
-    var why = next.from
-      ? 'semester terakhir di transkrip ' + next.from + (p.inProgress ? ' dan semester ' + p.currentSem + ' sedang berjalan' : '')
-      : 'nomor semester (semester 1 dimulai di Ganjil)';
-    $('#p-next-hint').innerHTML = 'Semester depan: <strong>semester ' + next.no + ' ' + offerLabel(next.parity) + '</strong>' +
-      (next.manual ? ' (diatur manual).' : ', ditentukan dari ' + esc(why) + '.') +
-      ' Semester saat ini: ' + p.currentSem + ' ' + offerLabel(otherParity(next.parity)) + '.';
+    $('#p-next-hint').innerHTML = 'Semester <strong>' + next.no + ' ' + offerLabel(next.parity) + '</strong>' + (next.manual ? ' (diatur manual).' : '.') +
+      ' Saat ini: semester ' + p.currentSem + ' ' + offerLabel(otherParity(next.parity)) + '.';
   }
 
   function renderRemainingInfo(a) {
     var el = $('#remaining-info');
     var parsed = parseRemaining(state.remainingText);
     var items = parsed.items;
+    $('#count-c').textContent = items.length;
     if (!state.remainingText.trim()) {
-      el.innerHTML = '<p class="font-semibold">Daftar masih kosong</p><p class="mt-1 text-ink2">Tanpa daftar ini, timeline hanya menampilkan jumlah SKS mata kuliah baru, bukan namanya.</p>';
+      el.innerHTML = '<p class="font-bold">Daftar masih kosong</p><p class="mt-1 text-sm">Tanpa daftar, timeline hanya menampilkan jumlah SKS mata kuliah baru.</p>';
       return;
     }
     var total = sumBy(items, function (x) { return x.sks; });
@@ -1644,47 +1633,51 @@ tailwind.config = {
     var cmp = '';
     if (need !== null) {
       var have = total + backlogSks;
-      if (have < need) cmp = 'Bersama Kategori A, masih kurang ' + (need - have) + ' SKS dari ' + need + ' SKS baru yang dibutuhkan; kekurangannya dijadwalkan sebagai SKS di luar antrean.';
-      else if (have > need) cmp = 'Bersama Kategori A, lebih ' + (have - need) + ' SKS dari kebutuhan ' + need + ' SKS, jadi tidak semua mata kuliah pilihan perlu diambil.';
-      else cmp = 'Bersama Kategori A, pas dengan ' + need + ' SKS baru yang dibutuhkan.';
-      if (a.active.lockedSks) cmp += ' Kebutuhan ini sudah dikurangi ' + a.active.lockedSks + ' SKS semester berjalan.';
+      if (have < need) cmp = 'Kurang ' + (need - have) + ' SKS dari kebutuhan ' + need + ' SKS; sisanya dijadwalkan sebagai SKS di luar antrean.';
+      else if (have > need) cmp = 'Lebih ' + (have - need) + ' SKS dari kebutuhan ' + need + ' SKS; tidak semua pilihan perlu diambil.';
+      else cmp = 'Pas dengan kebutuhan ' + need + ' SKS.';
     }
-    el.innerHTML = '<p><span class="font-semibold">' + items.length + ' baris, ' + total + ' SKS</span> (' + wajib + ' SKS wajib, ' + (total - wajib) + ' SKS pilihan). ' + cmp + '</p>' +
-      (parsed.bad.length ? '<p class="mt-2 text-warn font-semibold">Baris ' + parsed.bad.join(', ') + ' dilewati: SKS atau nama tidak ditemukan.</p>' : '');
+    el.innerHTML = '<p class="font-display text-2xl font-bold">' + items.length + ' <span class="text-base">baris</span> · ' + total + ' <span class="text-base">SKS</span></p>' +
+      '<p class="mt-1 flex flex-wrap gap-1.5"><span class="pill">' + wajib + ' wajib</span><span class="pill">' + (total - wajib) + ' pilihan</span></p>' +
+      (cmp ? '<p class="mt-2 text-sm font-semibold">' + cmp + '</p>' : '') +
+      (parsed.bad.length ? '<p class="mt-2 text-sm font-bold" style="color: var(--coral-ink);">Baris ' + parsed.bad.join(', ') + ' dilewati: SKS atau nama tidak ditemukan.</p>' : '');
   }
 
-  /* ---------- Render: Kategori B ---------- */
+  // Render: Kategori B
   function setPickerHint(a) {
     if (!a.plist.length) { $('#picker-hint').textContent = ''; return; }
     var text = state.retakeIds === null
-      ? 'Terpilih sesuai rekomendasi (' + (a.recommended ? a.recommended.length : 0) + ' mata kuliah).'
-      : 'Pilihan Anda sendiri. Tekan "Pakai rekomendasi" untuk kembali ke saran.';
+      ? 'Menyala sesuai rekomendasi (' + (a.recommended ? a.recommended.length : 0) + ' mata kuliah).'
+      : 'Pilihan Anda sendiri.';
     var unknown = a.plist.filter(function (c) { return !c.offerKnown; }).length;
-    if (unknown) text += ' ' + unknown + ' mata kuliah belum diketahui semester penawarannya; atur di pilihan "Ditawarkan".';
+    if (unknown) text += ' ' + unknown + ' mata kuliah belum diketahui semester penawarannya.';
     $('#picker-hint').textContent = text;
   }
 
   function renderPicker(a) {
     var el = $('#picker');
+    $('#count-b').textContent = a.plist.length;
     $('#picker-actions').hidden = !a.plist.length;
     if (!a.plist.length) {
       $('#picker-hint').textContent = '';
-      el.innerHTML = '<p class="text-ink2">Tidak ada mata kuliah bernilai C, D, atau E di transkrip, jadi tidak ada yang perlu diulang.</p>';
+      el.innerHTML = '<p class="sec-lead">Tidak ada nilai C, D, atau E di transkrip, jadi tidak ada yang perlu diulang.</p>';
       return;
     }
     var selectedIds = {};
     (a.selected || []).forEach(function (c) { selectedIds[c.id] = true; });
+    var finalK = a.base ? a.base.finalK : a.sum.K + Math.max(0, a.p.targetSks - a.sum.earned);
     setPickerHint(a);
     el.innerHTML = a.plist.map(function (c, i) {
       var id = esc(c.id);
       var targets = [['ips', 'Ikut IPS']].concat(GRADES.filter(function (g) { return GRADE_POINTS[g] > GRADE_POINTS[c.grade]; }).map(function (g) { return [g, g]; }));
+      var lift = finalK > 0 ? c.gain / finalK : 0;
       return '<div class="picker-item">' +
-        '<label class="picker-main">' +
-          '<input type="checkbox" value="' + id + '"' + (selectedIds[c.id] ? ' checked' : '') + '>' +
-          '<span class="stamp stamp-low">' + c.grade + '</span>' +
-          '<span class="min-w-0 flex-1"><span class="block font-semibold break-words">' + (i + 1) + '. ' + esc(c.name) + '</span>' +
-          '<span class="block text-sm text-ink2">' + c.sks + ' SKS, dampak +' + fmt(c.gain, 1) + ' poin mutu</span></span>' +
-        '</label>' +
+        '<div class="picker-main">' +
+          '<label class="switch" for="sw-' + id + '"><input id="sw-' + id + '" type="checkbox" role="switch" value="' + id + '"' + (selectedIds[c.id] ? ' checked' : '') + ' aria-describedby="pd-' + id + '"><span class="track" aria-hidden="true"><span class="thumb"></span></span></label>' +
+          '<span class="stamp">' + c.grade + '</span>' +
+          '<span class="min-w-0 flex-1"><label for="sw-' + id + '" class="block font-bold break-words cursor-pointer">' + (i + 1) + '. ' + esc(c.name) + '</label>' +
+          '<span id="pd-' + id + '" class="mt-0.5 flex flex-wrap gap-1.5"><span class="pill">' + c.sks + ' SKS</span><span class="pill" style="background: var(--mint);">+' + fmt(lift, 3) + ' IPK</span></span></span>' +
+        '</div>' +
         '<div class="picker-opts">' +
           '<div><label for="po-' + id + '">Ditawarkan</label><select id="po-' + id + '" class="field" data-offer="' + id + '">' + offerOptions(c.offer, !c.offerKnown) + '</select></div>' +
           '<div><label for="pt-' + id + '">Target nilai</label><select id="pt-' + id + '" class="field" data-target="' + id + '">' + pairOptions(targets, c.target) + '</select></div>' +
@@ -1693,7 +1686,7 @@ tailwind.config = {
     }).join('');
   }
 
-  /* ---------- Render: hasil ---------- */
+  // Render: hasil
   function finishLabel(p, no) {
     if (no === null) return 'tidak selesai';
     return 'semester ' + no + (no > p.normalSem ? ' (+' + (no - p.normalSem) + ' dari ' + p.normalSem + ')' : ' (tepat waktu)');
@@ -1702,83 +1695,79 @@ tailwind.config = {
   function renderVerdict(a) {
     var G = fmt(a.p.targetIpk);
     var x1 = a.base.required, x2 = a.repair.required;
-    var hl = function (v) { return '<strong class="num font-bold">' + v + '</strong>'; };
+    var hl = function (v) { return '<span class="hl">' + v + '</span>'; };
     var html;
     if (a.baseClass === 'aman') {
       html = x1 === null
-        ? 'SKS lulus sudah memenuhi ' + a.p.targetSks + ' SKS dan IPK ' + hl(fmt(a.sum.ipk)) + ' sudah di atas target ' + G + '.'
-        : 'Target IPK ' + G + ' sudah aman: IPK akhir tetap di atas target selama sisa ' + a.base.newSks + ' SKS lulus, berapa pun nilainya.';
+        ? 'SKS lulus sudah cukup dan IPK ' + hl(fmt(a.sum.ipk)) + ' di atas target ' + G + '.'
+        : 'Target ' + G + ' sudah aman: sisa ' + a.base.newSks + ' SKS cukup lulus saja.';
     } else {
       html = x1 === null
-        ? 'Semua ' + a.p.targetSks + ' SKS sudah terpenuhi dengan IPK ' + hl(fmt(a.sum.ipk)) + ', jadi IPK hanya bisa naik lewat mengulang.'
-        : 'Untuk IPK akhir ' + G + ', jalur normal butuh IPS ' + hl(fmt(x1)) + ' di setiap semester' + (x1 > 4 ? ', di atas nilai maksimum 4.00.' : '.');
+        ? 'Semua SKS sudah terpenuhi dengan IPK ' + hl(fmt(a.sum.ipk)) + '; IPK hanya bisa naik lewat mengulang.'
+        : 'Target ' + G + ' butuh IPS ' + hl(fmt(x1)) + ' tanpa mengulang' + (x1 > 4 ? ', di atas 4.00.' : '.');
       if (a.selected.length) {
         html += x2 === null
-          ? ' Dengan mengulang ' + a.selected.length + ' mata kuliah sesuai targetnya, IPK akhir menjadi ' + hl(fmt(a.repair.finalFixed)) + '.'
-          : ' Dengan mengulang ' + a.selected.length + ' mata kuliah terpilih, kebutuhan menjadi ' + hl(fmt(x2)) + (x2 > 4 ? ', masih di atas 4.00.' : '.');
-      } else if (a.plist.length) {
-        html += ' Centang mata kuliah di Kategori B untuk melihat jalur perbaikan.';
+          ? ' Dengan ' + a.selected.length + ' mata kuliah ulang sesuai target, IPK akhir ' + hl(fmt(a.repair.finalFixed)) + '.'
+          : ' Dengan ' + a.selected.length + ' mata kuliah ulang: ' + hl(fmt(x2)) + (x2 > 4 ? ', masih di atas 4.00.' : '.');
       }
     }
-    if (a.base.finishNo !== null) {
-      html += ' Jalur normal lulus di semester ' + hl(a.base.finishNo) + (a.selected.length && a.repair.finishNo !== null ? ', jalur perbaikan di semester ' + hl(a.repair.finishNo) : '') + ' (masa studi normal ' + a.p.normalSem + ').';
-    }
+    var finish = a.selected.length && a.repair.finishNo !== null ? a.repair.finishNo : a.base.finishNo;
+    if (finish !== null) html += ' Lulus semester ' + hl(finish) + '.';
     $('#verdict').innerHTML = html;
   }
 
-  function cardHtml(title, sub, sc, cls, extra, p) {
+  function cardHtml(title, sub, sc, cls, extra, p, accent) {
     var f = sc.finishNo;
     var finCell = f === null
-      ? '- <span class="block text-sm font-semibold text-warn font-sans">ada mata kuliah yang tidak bisa dijadwalkan</span>'
-      : f + (f > p.normalSem
-        ? ' <span class="block text-sm font-semibold text-warn font-sans">+' + (f - p.normalSem) + ' semester dari ' + p.normalSem + '</span>'
-        : ' <span class="block text-sm font-normal text-ink2 font-sans">tepat waktu (maks ' + p.normalSem + ')</span>');
+      ? '<span class="chip chip-coral">Ada yang tidak terjadwal</span>'
+      : '<span class="font-display text-3xl font-bold">' + f + '</span> ' + (f > p.normalSem
+        ? '<span class="chip chip-coral">+' + (f - p.normalSem) + ' semester</span>'
+        : '<span class="chip chip-mint">tepat waktu</span>');
     var x = sc.required;
     var big = x === null ? (sc.finalFixed !== null ? fmt(sc.finalFixed) : '-') : fmt(Math.max(0, x));
-    var bigLabel = x === null && sc.finalFixed !== null ? 'IPK akhir dari target nilai' : sc.hasFixed ? 'IPS dibutuhkan (mata kuliah tanpa target)' : 'IPS dibutuhkan per semester';
-    var chipWarn = cls === 'mustahil' || cls === 'sangat-berat';
+    var bigLabel = x === null && sc.finalFixed !== null ? 'IPK akhir dari target nilai' : sc.hasFixed ? 'IPS dibutuhkan (tanpa target)' : 'IPS dibutuhkan';
     var statusText = x === null
       ? (cls === 'aman' ? 'Target tercapai' : 'Target tidak tercapai')
-      : x <= 0 ? 'Berapa pun nilainya, target aman'
-      : x > 4 ? 'Di atas 4.00, tidak bisa dicapai'
+      : x <= 0 ? 'Target aman'
+      : x > 4 ? 'Di atas 4.00'
       : CLASS_LABEL[cls];
-    return '<article class="card min-w-0">' +
-      '<h3 class="font-serif text-xl font-semibold">' + title + '</h3>' +
-      '<p class="text-sm text-ink2">' + sub + '</p>' +
-      '<p class="mt-5 text-sm text-ink2">' + bigLabel + '</p>' +
-      '<p class="num text-5xl font-semibold leading-none mt-1">' + big + '</p>' +
-      '<p class="mt-3"><span class="status-chip' + (chipWarn ? ' is-warn' : '') + '">' + esc(statusText) + '</span></p>' +
-      '<dl class="facts mt-5">' +
-        '<div><dt>SKS baru</dt><dd>' + sc.newSks + '</dd></div>' +
-        '<div><dt>SKS mengulang</dt><dd>' + sc.retakeSks + '</dd></div>' +
-        '<div><dt>Sisa waktu</dt><dd>' + (sc.semLeft === null ? '-' : sc.semLeft + ' semester') + '</dd></div>' +
-        '<div><dt>Lulus di semester</dt><dd>' + finCell + '</dd></div>' +
-        '<div class="col-span-2"><dt>IPK akhir bila semua nilai A</dt><dd>' + fmt(sc.maxIpk) + '</dd></div>' +
-      '</dl>' + (extra || '') +
-      '</article>';
+    return '<article class="card min-w-0 overflow-hidden">' +
+      '<div class="px-5 py-3" style="background: ' + accent + '; border-bottom: 2px solid var(--ink);">' +
+        '<h3 class="font-display text-xl font-bold">' + title + '</h3><p class="text-sm font-semibold">' + sub + '</p></div>' +
+      '<div class="card-pad">' +
+        '<p class="text-sm font-bold">' + bigLabel + '</p>' +
+        '<p class="font-display font-bold leading-none mt-1" style="font-size: 3.25rem;">' + big + '</p>' +
+        '<p class="mt-3"><span class="chip ' + CLASS_CHIP[cls] + '">' + esc(statusText) + '</span></p>' +
+        '<dl class="mt-4 grid grid-cols-2 gap-3 text-sm">' +
+          '<div><dt class="font-bold">SKS baru</dt><dd class="mono text-lg font-bold">' + sc.newSks + '</dd></div>' +
+          '<div><dt class="font-bold">SKS mengulang</dt><dd class="mono text-lg font-bold">' + sc.retakeSks + '</dd></div>' +
+          '<div class="col-span-2"><dt class="font-bold">Lulus di semester</dt><dd class="mt-1 flex flex-wrap items-center gap-2">' + finCell + '</dd></div>' +
+          '<div class="col-span-2"><dt class="font-bold">IPK akhir bila semua A</dt><dd class="mono text-lg font-bold">' + fmt(sc.maxIpk) + '</dd></div>' +
+        '</dl>' + (extra || '') +
+      '</div></article>';
   }
 
   function renderCompare(a) {
     var base = a.base, rep = a.repair;
     var extra = '';
     if (!a.plist.length) {
-      extra = '<p class="mt-4 text-sm text-ink2">Tidak ada mata kuliah yang bisa diulang.</p>';
+      extra = '<p class="mt-4 text-sm font-semibold">Tidak ada mata kuliah yang bisa diulang.</p>';
     } else if (!a.selected.length) {
-      extra = '<p class="mt-4 text-sm text-ink2">Belum ada mata kuliah yang dicentang di Kategori B, jadi angkanya sama dengan jalur normal.</p>';
+      extra = '<p class="mt-4 text-sm font-semibold">Nyalakan sakelar di tab Mengulang untuk membandingkan.</p>';
     } else {
       var lines = [];
       if (base.required !== null && rep.required !== null && !rep.hasFixed) {
         var diff = base.required - rep.required;
-        lines.push(diff >= 0.005 ? 'Kebutuhan IPS turun ' + fmt(diff) + ' dibanding jalur normal.' : diff <= -0.005 ? 'Kebutuhan IPS naik ' + fmt(-diff) + '.' : 'Kebutuhan IPS sama dengan jalur normal.');
+        lines.push(diff >= 0.005 ? 'IPS dibutuhkan turun ' + fmt(diff) + '.' : diff <= -0.005 ? 'IPS dibutuhkan naik ' + fmt(-diff) + '.' : 'IPS dibutuhkan sama.');
       }
       if (rep.finishNo !== null && base.finishNo !== null) {
-        lines.push(rep.finishNo > base.finishNo ? 'Lulus ' + (rep.finishNo - base.finishNo) + ' semester lebih lama dari jalur normal.' : 'Semester lulus sama dengan jalur normal.');
+        lines.push(rep.finishNo > base.finishNo ? 'Lulus ' + (rep.finishNo - base.finishNo) + ' semester lebih lama.' : 'Semester lulus sama.');
       }
-      extra = '<p class="mt-4 text-sm">' + lines.join(' ') + '</p>';
+      extra = '<p class="mt-4 text-sm font-semibold">' + lines.join(' ') + '</p>';
     }
     $('#compare').innerHTML =
-      cardHtml('Jalur normal', 'Tanpa mengulang', base, a.baseClass, '', a.p) +
-      cardHtml('Jalur perbaikan', a.selected.length ? 'Mengulang ' + a.selected.length + ' mata kuliah terpilih' : 'Belum ada yang dipilih', rep, a.repairClass, extra, a.p);
+      cardHtml('Jalur normal', 'Tanpa mengulang', base, a.baseClass, '', a.p, 'var(--peri)') +
+      cardHtml('Jalur perbaikan', a.selected.length ? 'Mengulang ' + a.selected.length + ' mata kuliah' : 'Belum ada yang dinyalakan', rep, a.repairClass, extra, a.p, 'var(--sky)');
   }
 
   function renderSemBlock(a) {
@@ -1786,35 +1775,32 @@ tailwind.config = {
     var hasRep = a.selected.length > 0;
     var cell = function (no) {
       if (no === null) return '-';
-      return 'Semester ' + no + (no > p.normalSem ? ' <span class="text-warn font-semibold">+' + (no - p.normalSem) + '</span>' : '');
+      return no + (no > p.normalSem ? ' <span class="chip chip-coral" style="padding: 0 .4rem; font-size: .75rem;">+' + (no - p.normalSem) + '</span>' : '');
     };
     var lead;
     if (hasRep && a.repair.finishNo !== null && a.base.finishNo !== null) {
       var diff = a.repair.finishNo - a.base.finishNo;
-      var f = a.repair.finishNo;
-      lead = 'Dengan batas ' + p.maxSks + ' SKS, mengulang ' + a.selected.length + ' mata kuliah ' +
-        (diff > 0 ? '<strong>menambah ' + diff + ' semester</strong>' : '<strong>tidak menambah semester</strong>') + ' dibanding jalur normal: lulus di semester ' + f +
-        (f > p.normalSem ? ', <strong class="text-warn">' + (f - p.normalSem) + ' semester lewat</strong> dari masa studi normal.' : ', masih dalam masa studi normal.');
+      lead = 'Mengulang ' + a.selected.length + ' mata kuliah ' + (diff > 0 ? '<strong>menambah ' + diff + ' semester</strong>' : '<strong>tidak menambah semester</strong>') + ' pada batas ' + p.maxSks + ' SKS.';
     } else if (a.base.finishNo !== null) {
       lead = 'Jalur normal lulus di ' + finishLabel(p, a.base.finishNo) + '.';
     } else {
-      lead = 'Ada mata kuliah di antrean yang tidak bisa dijadwalkan dengan batas SKS ini; lihat timeline.';
+      lead = 'Ada mata kuliah yang tidak bisa dijadwalkan dengan batas SKS ini.';
     }
-    $('#sem-block').innerHTML = '<div class="card"><h3 class="font-serif text-xl font-semibold">Lulus di semester berapa?</h3>' +
-      '<p class="mt-2">' + lead + '</p>' +
-      '<div class="mt-4 overflow-x-auto"><table class="data-table"><caption class="sr-only">Semester lulus menurut batas SKS per semester</caption>' +
-      '<thead><tr><th scope="col">Batas SKS</th><th scope="col">Jalur normal</th>' + (hasRep ? '<th scope="col">Jalur perbaikan</th>' : '') + '</tr></thead><tbody>' +
+    $('#sem-block').innerHTML = '<div class="card card-pad h-full"><h3 class="font-display text-xl font-bold">Lulus semester berapa?</h3>' +
+      '<p class="mt-2 font-medium">' + lead + '</p>' +
+      '<div class="mt-4 overflow-x-auto"><table class="data-table"><caption class="sr-only">Semester lulus menurut batas SKS</caption>' +
+      '<thead><tr><th scope="col">Batas SKS</th><th scope="col">Normal</th>' + (hasRep ? '<th scope="col">Perbaikan</th>' : '') + '</tr></thead><tbody>' +
       a.loads.map(function (r) {
-        return '<tr><td>' + r.load + ' SKS' + (r.load === p.maxSks ? ' <span class="text-ink2">(isian Anda)</span>' : '') + '</td>' +
-          '<td class="num">' + cell(r.base) + '</td>' + (hasRep ? '<td class="num">' + cell(r.repair) + '</td>' : '') + '</tr>';
+        return '<tr' + (r.load === p.maxSks ? ' style="background: var(--peri);"' : '') + '><td class="mono font-bold">' + r.load + (r.load === p.maxSks ? ' (Anda)' : '') + '</td>' +
+          '<td class="mono">' + cell(r.base) + '</td>' + (hasRep ? '<td class="mono">' + cell(r.repair) + '</td>' : '') + '</tr>';
       }).join('') +
       '</tbody></table></div>' +
-      '<p class="mt-2 text-sm text-ink2">Tanda +1, +2 berarti semester yang melewati masa studi normal ' + p.normalSem + ' semester. Simulasi memakai aturan Ganjil/Genap yang sama.</p></div>';
+      '<p class="mt-2 text-xs font-semibold sec-lead">+1, +2 = semester lewat dari masa studi ' + p.normalSem + '.</p></div>';
   }
 
   function courseList(list) {
-    return '<ol class="mt-3 space-y-2 list-decimal pl-5">' + list.map(function (c) {
-      return '<li><span class="font-semibold">' + esc(c.name) + '</span> <span class="text-onpanel2">(' + c.sks + ' SKS, nilai ' + c.grade + ', ' + offerLabel(c.offer) + ')</span></li>';
+    return '<ol class="mt-3 space-y-2">' + list.map(function (c, i) {
+      return '<li class="flex flex-wrap items-center gap-2"><span class="pill">' + (i + 1) + '</span><span class="font-bold">' + esc(c.name) + '</span><span class="pill">' + c.sks + ' SKS</span><span class="badge badge-ulang">' + c.grade + '</span><span class="pill">' + offerLabel(c.offer) + '</span></li>';
     }).join('') + '</ol>';
   }
 
@@ -1832,67 +1818,66 @@ tailwind.config = {
       if (!recSc || recSc.finishNo === null || !rec.length) return null;
       return 'Dengan batas ' + a.p.maxSks + ' SKS, mengulang ' + rec.length + ' mata kuliah ini membuat Anda lulus di ' + finishLabel(a.p, recSc.finishNo) + '.';
     };
-    var pacing = 'Ambil mata kuliah ulang di semester pertama yang membukanya (Ganjil atau Genap); kalau tergeser, mata kuliah itu menunggu satu tahun penuh.';
+    var pacing = 'Ambil mata kuliah ulang di semester pertama yang membukanya (Ganjil atau Genap); kalau tergeser, ia menunggu satu tahun penuh.';
 
     if (cls === 'aman') {
       title = 'Target sudah aman';
       lead = x1 === null ? 'SKS lulus sudah cukup dan IPK ' + fmt(a.sum.ipk) + ' di atas target ' + G + '.' : 'IPK akhir tetap di atas ' + G + ' selama sisa ' + N1 + ' SKS lulus.';
       steps.push('Mengulang nilai C tidak diperlukan untuk target ini.');
-      steps.push('Pakai jatah mata kuliah pilihan untuk topik yang mendukung tugas akhir atau tempat magang yang Anda incar.');
+      steps.push('Pakai jatah pilihan untuk topik yang mendukung tugas akhir atau magang.');
     } else if (cls === 'ringan') {
-      title = 'Target ringan: cukup IPS ' + fmt(x1) + ' per semester';
-      lead = 'Rata-rata di bawah AB sudah cukup untuk IPK akhir ' + G + '. Prioritas utama adalah lulus tepat waktu.';
-      steps.push('Tidak perlu mengulang nilai C; dahulukan mata kuliah tertunda dan wajib di semester yang membukanya.');
-      steps.push('Pilih mata kuliah pilihan yang mendukung tugas akhir atau magang, bukan hanya yang dikenal mudah.');
-      steps.push('Jaga IPS minimal ' + fmt(Math.min(4, x1 + 0.2)) + ' sebagai cadangan bila satu semester meleset.');
+      title = 'Target ringan: cukup IPS ' + fmt(x1);
+      lead = 'Rata-rata di bawah AB sudah cukup untuk IPK akhir ' + G + '. Fokus lulus tepat waktu.';
+      steps.push('Tidak perlu mengulang nilai C; dahulukan mata kuliah tertunda dan wajib.');
+      steps.push('Pilih mata kuliah pilihan yang mendukung tugas akhir atau magang.');
+      steps.push('Jaga IPS minimal ' + fmt(Math.min(4, x1 + 0.2)) + ' sebagai cadangan.');
     } else if (cls === 'realistis') {
-      title = 'Target realistis: butuh IPS ' + fmt(x1) + ' per semester';
-      lead = 'Setara rata-rata nilai antara B dan AB di setiap semester. Mengulang belum wajib.';
-      if (top && a.xs[1] && a.xs[1].required !== null) steps.push('Bila ingin cadangan, ulang ' + top.name + ' (' + top.sks + ' SKS, nilai ' + top.grade + ', ' + offerLabel(top.offer) + '). Kebutuhan IPS turun menjadi ' + fmt(a.xs[1].required) + '.');
-      steps.push('Jangan menunda mata kuliah wajib; yang tergeser dari semester Ganjil/Genap-nya harus menunggu satu tahun.');
+      title = 'Target realistis: butuh IPS ' + fmt(x1);
+      lead = 'Setara rata-rata antara B dan AB tiap semester. Mengulang belum wajib.';
+      if (top && a.xs[1] && a.xs[1].required !== null) steps.push('Bila ingin cadangan, ulang ' + top.name + ' (' + top.sks + ' SKS, ' + top.grade + ', ' + offerLabel(top.offer) + '). Kebutuhan IPS turun ke ' + fmt(a.xs[1].required) + '.');
+      steps.push('Jangan menunda mata kuliah wajib; yang tergeser dari semesternya menunggu satu tahun.');
     } else if (cls === 'menantang' || cls === 'sangat-berat') {
-      title = (cls === 'menantang' ? 'Target menantang' : 'Target sangat berat') + ': butuh IPS ' + fmt(x1) + ' per semester';
+      title = (cls === 'menantang' ? 'Target menantang' : 'Target sangat berat') + ': butuh IPS ' + fmt(x1);
       lead = cls === 'menantang'
-        ? 'Bisa dicapai, tetapi butuh nilai AB sampai A secara konsisten. Mengulang mata kuliah C ber-SKS besar membuat target lebih longgar.'
-        : 'Secara hitungan masih mungkin, tetapi hampir semua nilai harus A. Satu semester dengan banyak nilai B bisa membuat target lepas.';
+        ? 'Bisa dicapai dengan nilai AB sampai A secara konsisten. Mengulang C ber-SKS besar membuatnya lebih longgar.'
+        : 'Masih mungkin, tapi hampir semua nilai harus A.';
       if (rec.length) {
-        list = '<p class="mt-4">Ulang ' + rec.length + ' mata kuliah ini agar kebutuhan IPS turun dari ' + fmt(x1) + ' ke <strong class="num">' + fmt(recSc.required) + '</strong>:</p>' + courseList(rec);
+        list = '<p class="mt-4 font-semibold">Ulang ' + rec.length + ' mata kuliah ini, IPS dibutuhkan turun ke <span class="hl">' + fmt(recSc.required) + '</span>:</p>' + courseList(rec);
         steps.push(pacing);
         if (semStep()) steps.push(semStep());
       } else {
-        steps.push('Tidak ada nilai C, D, atau E untuk diulang, jadi target hanya bisa dikejar lewat IPS ' + fmt(x1) + ' di setiap semester.');
+        steps.push('Tidak ada nilai C, D, atau E untuk diulang, jadi target dikejar lewat IPS ' + fmt(x1) + '.');
       }
     } else {
       title = 'Target ' + G + ' tidak tercapai tanpa mengulang';
       lead = x1 === null
-        ? 'Semua ' + a.p.targetSks + ' SKS sudah terpenuhi, jadi IPK hanya bisa naik lewat mengulang.'
-        : 'Bahkan dengan IPS 4.00 di setiap semester, IPK akhir jalur normal paling tinggi ' + fmt(a.base.maxIpk) + '.';
+        ? 'Semua SKS sudah terpenuhi, jadi IPK hanya bisa naik lewat mengulang.'
+        : 'IPS 4.00 di setiap semester pun hanya membawa IPK akhir ke ' + fmt(a.base.maxIpk) + '.';
       var xAll = a.allSc.required;
       var realistic = a.allSc.ipkAt(REALISTIC_IPS);
       var realisticText = realistic !== null ? fmt(Math.floor(realistic * 100) / 100) : '-';
       if (!a.plist.length) {
-        list = '<p class="mt-4">Tidak ada nilai C, D, atau E untuk diulang. Target yang masih bisa dikejar dengan IPS ' + REALISTIC_IPS.toFixed(2) + ': <strong class="num">' + realisticText + '</strong>.</p>';
+        list = '<p class="mt-4">Target yang masih bisa dikejar dengan IPS ' + REALISTIC_IPS.toFixed(2) + ': <span class="hl">' + realisticText + '</span>.</p>';
       } else if (a.kMin >= 0) {
-        list = '<p class="mt-4 font-semibold">Wajib diulang agar kebutuhan IPS turun ke ' + fmt(recSc.required) + ' (di bawah batas realistis ' + REALISTIC_IPS.toFixed(2) + '):</p>' + courseList(rec);
+        list = '<p class="mt-4 font-semibold">Wajib diulang agar IPS dibutuhkan turun ke ' + fmt(recSc.required) + ':</p>' + courseList(rec);
       } else if (xAll !== null && xAll <= 4) {
-        list = '<p class="mt-4 font-semibold">Mengulang semua ' + a.plist.length + ' mata kuliah C, D, dan E pun baru menurunkan kebutuhan ke ' + fmt(xAll) + ', masih di atas ' + REALISTIC_IPS.toFixed(2) + '.</p>' + courseList(rec) +
-          '<p class="mt-3">Pertimbangkan target ' + realisticText + ', yang bisa dicapai dengan IPS ' + REALISTIC_IPS.toFixed(2) + ' sambil mengulang semua mata kuliah di atas.</p>';
+        list = '<p class="mt-4 font-semibold">Mengulang semua ' + a.plist.length + ' mata kuliah pun baru menurunkan kebutuhan ke ' + fmt(xAll) + '.</p>' + courseList(rec) +
+          '<p class="mt-3">Target yang realistis: <span class="hl">' + realisticText + '</span> (IPS ' + REALISTIC_IPS.toFixed(2) + ' + mengulang semuanya).</p>';
       } else {
-        list = '<p class="mt-4 font-semibold">Target ' + G + ' tidak tercapai walaupun semua ' + a.plist.length + ' mata kuliah C, D, dan E diulang dan semua nilai A (IPK akhir paling tinggi ' + fmt(a.allSc.maxIpk) + ').</p>' +
-          '<p class="mt-2">Target yang masih realistis: <strong class="num">' + realisticText + '</strong>, dengan IPS ' + REALISTIC_IPS.toFixed(2) + ' dan mengulang semua mata kuliah C, D, dan E.</p>';
+        list = '<p class="mt-4 font-semibold">Mengulang semua dengan nilai A pun IPK akhir paling tinggi ' + fmt(a.allSc.maxIpk) + '.</p>' +
+          '<p class="mt-2">Target yang realistis: <span class="hl">' + realisticText + '</span>.</p>';
       }
       if (a.plist.length) {
         steps.push(pacing);
         if (semStep()) steps.push(semStep());
-        steps.push('Bicarakan rencana ini dengan dosen pembimbing akademik, terutama bila jadwal mata kuliah ulang bentrok dengan mata kuliah baru.');
+        steps.push('Bicarakan rencana ini dengan dosen pembimbing akademik.');
       }
     }
     var tone = cls === 'mustahil' || cls === 'sangat-berat';
-    return '<p class="text-onpanel2">Kondisi Anda</p>' +
-      '<h3 class="font-serif text-2xl font-semibold leading-snug mt-1">' + esc(title) + '</h3>' +
-      (tone ? '<p class="mt-2"><span class="tag tag-strong">Perlu tindakan</span></p>' : '') +
-      '<p class="mt-3">' + esc(lead) + '</p>' + list +
-      (steps.length ? '<p class="mt-6 font-semibold">Langkah ke depan</p><ul class="mt-2 space-y-2 list-disc pl-5">' + steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>' : '');
+    return '<div class="flex flex-wrap items-center gap-2"><span class="chip ' + CLASS_CHIP[cls] + '">' + CLASS_LABEL[cls] + '</span>' + (tone ? '<span class="chip chip-coral">Perlu tindakan</span>' : '') + '</div>' +
+      '<h3 class="font-display text-2xl font-bold leading-snug mt-3">' + esc(title) + '</h3>' +
+      '<p class="mt-2 font-medium">' + esc(lead) + '</p>' + list +
+      (steps.length ? '<p class="mt-5 font-bold">Langkah ke depan</p><ul class="mt-2 space-y-2 list-disc pl-5">' + steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>' : '');
   }
 
   // Peringatan bottleneck Ganjil/Genap: mata kuliah yang menunggu satu tahun, dan semester tambahan karena aturan Ganjil/Genap.
@@ -1903,12 +1888,16 @@ tailwind.config = {
     sim.sems.forEach(function (s) {
       s.items.forEach(function (it) { if (it.wait >= 2 && (it.kind === 'ulang' || it.kind === 'tunda')) waits.push({ it: it, no: s.no }); });
     });
+    var overloaded = sim.sems.filter(function (s) { return s.load > 24; });
     var parts = [];
     if (sim.unplaceable.length) {
-      parts.push('<p>' + sim.unplaceable.map(function (x) { return esc(x.name) + ' (' + x.sks + ' SKS)'; }).join(', ') + ' lebih besar dari batas ' + a.p.maxSks + ' SKS per semester, jadi tidak bisa dijadwalkan. Naikkan batas SKS atau pecah barisnya.</p>');
+      parts.push('<p>' + sim.unplaceable.map(function (x) { return esc(x.name) + ' (' + x.sks + ' SKS)'; }).join(', ') + ' lebih besar dari batas ' + a.p.maxSks + ' SKS, jadi tidak bisa dijadwalkan.</p>');
     }
     if (sim.stuck && sim.leftover.length) {
-      parts.push('<p>Simulasi berhenti setelah ' + MAX_SIM_SEMESTERS + ' semester dan masih menyisakan: ' + sim.leftover.map(esc).join(', ') + '. Periksa semester penawarannya.</p>');
+      parts.push('<p>Simulasi berhenti setelah ' + MAX_SIM_SEMESTERS + ' semester dan masih menyisakan: ' + sim.leftover.map(esc).join(', ') + '.</p>');
+    }
+    if (overloaded.length) {
+      parts.push('<p><strong>Overload:</strong> semester ' + overloaded.map(function (s) { return s.no + ' (' + s.load + ' SKS)'; }).join(', ') + ' melewati 24 SKS. Pastikan IPS Anda mengizinkan.</p>');
     }
     if (a.parityDelay > 0) {
       var cutoff = a.free.finishNo;
@@ -1916,21 +1905,21 @@ tailwind.config = {
       sim.sems.forEach(function (s) {
         if (s.no > cutoff) s.items.forEach(function (it) { if (it.offer && it.offer !== 'keduanya') late.push(it.name + ' (' + offerLabel(it.offer) + ')'); });
       });
-      parts.push('<p><strong>Aturan Ganjil/Genap menambah ' + a.parityDelay + ' semester.</strong> Tanpa aturan itu Anda lulus di semester ' + cutoff + '. ' +
-        (late.length ? 'Yang membuat semester ' + sc.finishNo + ' tetap diperlukan: ' + late.map(esc).join(', ') + '.' : '') + '</p>');
+      parts.push('<p><strong>Aturan Ganjil/Genap menambah ' + a.parityDelay + ' semester.</strong> Tanpa aturan itu lulus semester ' + cutoff + '.' +
+        (late.length ? ' Penyebabnya: ' + late.map(esc).join(', ') + '.' : '') + '</p>');
     }
     if (waits.length) {
-      parts.push('<p class="font-semibold">Menunggu satu tahun akademik penuh karena tergeser batas SKS:</p><ul class="mt-1 list-disc pl-5 space-y-1">' +
+      parts.push('<p class="font-bold">Menunggu satu tahun karena tergeser batas SKS:</p><ul class="mt-1 list-disc pl-5 space-y-1">' +
         waits.map(function (w) {
-          return '<li>' + esc(w.it.name) + ' (' + offerLabel(w.it.offer) + ', ' + (w.it.kind === 'ulang' ? 'mengulang' : 'tertunda') + '): baru masuk semester ' + w.no + ', terlambat ' + w.it.wait + ' semester dari kesempatan pertamanya.</li>';
+          return '<li>' + esc(w.it.name) + ' (' + offerLabel(w.it.offer) + '): masuk semester ' + w.no + ', terlambat ' + w.it.wait + ' semester.</li>';
         }).join('') + '</ul>');
     }
     if (!parts.length) {
-      el.innerHTML = '<p class="font-semibold">Bottleneck Ganjil/Genap</p><p class="mt-1 text-onpanel2">Tidak ada mata kuliah mengulang atau tertunda yang harus menunggu satu tahun penuh, dan aturan Ganjil/Genap tidak menambah semester.</p>';
+      el.innerHTML = '<div class="notice is-success"><p class="font-bold">Tidak ada bottleneck Ganjil/Genap</p><p class="mt-1 text-sm">Tidak ada mata kuliah yang menunggu satu tahun, dan aturan Ganjil/Genap tidak menambah semester.</p></div>';
       return;
     }
-    el.innerHTML = '<div class="alert-box"><p class="font-serif text-lg font-semibold">Peringatan bottleneck Ganjil/Genap</p><div class="mt-2 space-y-2">' + parts.join('') +
-      '</div><p class="mt-3 text-sm text-onpanel2">Cara mengurangi: naikkan batas SKS bila IPS mengizinkan, kurangi mata kuliah yang diulang, atau ubah semester penawaran bila kampus membukanya di kedua semester.</p></div>';
+    el.innerHTML = '<div class="card card-pad" style="background: var(--coral);"><p class="font-display text-lg font-bold">Peringatan bottleneck</p><div class="mt-2 space-y-2 text-sm font-medium">' + parts.join('') +
+      '</div><p class="mt-3 text-sm font-semibold">Cara mengurangi: naikkan batas SKS bila IPS mengizinkan, kurangi mata kuliah ulang, atau ubah semester penawaran.</p></div>';
   }
 
   function renderPriority(a) {
@@ -1938,50 +1927,47 @@ tailwind.config = {
     var hint = $('#prio-hint');
     if (!a.plist.length) {
       hint.textContent = '';
-      el.innerHTML = '<li class="block"><p>Tidak ada nilai C, D, atau E di transkrip, jadi tidak ada yang perlu diulang.</p></li>';
+      el.innerHTML = '<li class="block"><p>Tidak ada nilai C, D, atau E di transkrip.</p></li>';
       return;
     }
-    var minText;
-    if (a.kMin === 0) minText = 'Tanpa mengulang pun kebutuhan IPS sudah ' + fmt(a.base.required) + ', di bawah batas ' + REALISTIC_IPS.toFixed(2) + '.';
-    else if (a.kMin > 0) minText = 'Minimal ' + a.kMin + ' mata kuliah teratas perlu diulang agar kebutuhan IPS turun ke ' + REALISTIC_IPS.toFixed(2) + ' atau lebih rendah.';
-    else minText = 'Mengulang semuanya pun belum membawa kebutuhan IPS ke ' + REALISTIC_IPS.toFixed(2) + ' (paling rendah ' + fmt(a.allSc.required) + ').';
-    var by = ' Dengan batas ' + a.p.maxSks + ' SKS, ';
-    var fitText = a.kFit === a.plist.length ? by + 'semua ' + a.plist.length + ' mata kuliah bisa diulang tanpa melewati semester ' + a.p.normalSem + '.'
-      : a.kFit >= 1 ? by + 'paling banyak ' + a.kFit + ' mata kuliah teratas bisa diulang tanpa melewati semester ' + a.p.normalSem + '.'
-      : a.kFit === 0 ? by + 'mengulang satu mata kuliah pun sudah melewati semester ' + a.p.normalSem + '.'
-      : ' Jalur normal pun sudah melewati semester ' + a.p.normalSem + '.';
-    hint.textContent = 'Diurutkan dari dampak terbesar: SKS × selisih bobot ke target nilai. ' + minText + fitText;
+    var minText = a.kMin === 0 ? 'Tanpa mengulang pun kebutuhan IPS sudah di bawah ' + REALISTIC_IPS.toFixed(2) + '.'
+      : a.kMin > 0 ? 'Minimal ' + a.kMin + ' teratas perlu diulang agar IPS dibutuhkan di bawah ' + REALISTIC_IPS.toFixed(2) + '.'
+      : 'Mengulang semua pun kebutuhan IPS paling rendah ' + fmt(a.allSc.required) + '.';
+    var fitText = a.kFit === a.plist.length ? ' Semuanya muat tanpa melewati semester ' + a.p.normalSem + '.'
+      : a.kFit >= 1 ? ' Paling banyak ' + a.kFit + ' teratas muat tanpa melewati semester ' + a.p.normalSem + '.'
+      : a.kFit === 0 ? ' Mengulang satu pun sudah melewati semester ' + a.p.normalSem + '.'
+      : '';
+    hint.textContent = minText + fitText;
     var recIds = {};
     a.recommended.forEach(function (c) { recIds[c.id] = true; });
     var mandatory = a.baseClass === 'mustahil';
     el.innerHTML = a.plist.map(function (c, i) {
       var sc = a.xs[i + 1];
-      var tag = recIds[c.id] ? '<span class="tag tag-strong">' + (mandatory ? 'Wajib diulang' : 'Disarankan') + '</span>' : '<span class="tag tag-soft">Opsional</span>';
+      var tag = recIds[c.id] ? '<span class="chip ' + (mandatory ? 'chip-coral' : 'chip-butter') + '">' + (mandatory ? 'Wajib diulang' : 'Disarankan') + '</span>' : '<span class="chip chip-white">Opsional</span>';
       var parts = [];
-      if (sc.required !== null) parts.push('IPS dibutuhkan ' + fmt(sc.required) + (sc.required > 4 ? ' (masih di atas 4.00)' : ''));
+      if (sc.required !== null) parts.push('IPS ' + fmt(sc.required));
       parts.push('lulus ' + finishLabel(a.p, sc.finishNo));
       return '<li>' +
         '<span class="rank" aria-hidden="true">' + (i + 1) + '</span>' +
-        '<div class="min-w-0"><p class="font-semibold break-words">' + esc(c.name) + '</p>' +
-          '<p class="text-sm text-onpanel2">' + c.sks + ' SKS, nilai ' + c.grade + ', ' + offerLabel(c.offer) + ', target ' + (c.target === 'ips' ? 'ikut IPS' : c.target) + ', dampak +' + fmt(c.gain, 1) + '</p></div>' +
+        '<div class="min-w-0"><p class="font-bold break-words">' + esc(c.name) + '</p>' +
+          '<p class="mt-1 flex flex-wrap gap-1.5"><span class="pill">' + c.sks + ' SKS</span><span class="badge badge-ulang">' + c.grade + '</span><span class="pill">' + offerLabel(c.offer) + '</span><span class="pill">+' + fmt(c.gain, 1) + ' mutu</span></p></div>' +
         '<div class="text-right">' + tag + '</div>' +
-        '<p class="effect">Bila nomor 1' + (i ? ' sampai ' + (i + 1) : '') + ' diulang: ' + parts.join(', ') + '</p>' +
+        '<p class="effect">Bila 1' + (i ? '-' + (i + 1) : '') + ' diulang: ' + parts.join(', ') + '</p>' +
         '</li>';
     }).join('');
   }
 
   var KIND_LABEL = { baru: 'Baru', tunda: 'Tertunda', ulang: 'Mengulang' };
   function itemFlags(it) {
-    var out = '';
-    if (it.wait >= 2) out += ' <span class="flag flag-wait">Menunggu 1 tahun</span>';
-    else if (it.shifted) out += ' <span class="flag">Digeser karena batas SKS</span>';
-    return out;
+    if (it.wait >= 2) return ' <span class="flag flag-wait">Menunggu 1 tahun</span>';
+    if (it.shifted) return ' <span class="flag">Digeser karena batas SKS</span>';
+    return '';
   }
   function itemName(it) {
     var extra = '';
-    if (it.kind === 'ulang') extra = ' <span class="text-sm opacity-80">(nilai ' + it.ref.grade + (targetPoints(it.ref) !== null ? ', target ' + it.ref.target : '') + ')</span>';
-    else if (it.label === 'prasyarat') extra = ' <span class="text-sm opacity-80">(prasyarat)</span>';
-    else if (it.pool) extra = ' <span class="text-sm opacity-80">(pilih sendiri)</span>';
+    if (it.kind === 'ulang') extra = ' <span class="mono text-xs">(' + it.ref.grade + (targetPoints(it.ref) !== null ? ' ke ' + it.ref.target : '') + ')</span>';
+    else if (it.label === 'prasyarat') extra = ' <span class="text-xs">(prasyarat)</span>';
+    else if (it.pool) extra = ' <span class="text-xs">(pilih sendiri)</span>';
     return esc(it.name) + extra;
   }
 
@@ -1991,64 +1977,70 @@ tailwind.config = {
     var M = a.p.maxSks;
     var pathName = a.selected.length ? 'jalur perbaikan' : 'jalur normal';
     var s = sc.sim.sems.length && sc.sim.sems[0].no === a.ctx.startNo ? sc.sim.sems[0] : null;
-    var head = '<h3 class="font-serif text-xl font-semibold">Paket KRS semester depan</h3>' +
-      '<p class="mt-1 text-onpanel2">Semester ' + a.ctx.startNo + ' ' + offerLabel(a.ctx.startParity) + ', mengikuti ' + pathName + '.</p>' +
-      (sc.lockedSks || a.ctx.locked ? '<p class="mt-2 text-sm">Semester ' + a.ctx.currentSem + ' sedang berjalan dengan ' + sc.lockedSks + ' SKS dan tidak diubah.</p>' : '');
+    var head = '<div class="flex flex-wrap items-center gap-2"><h3 class="font-display text-xl font-bold">Paket KRS semester depan</h3>' +
+      '<span class="chip ' + (a.ctx.startParity === 'ganjil' ? 'chip-cobalt' : 'chip-butter') + '">Smt ' + a.ctx.startNo + ' ' + offerLabel(a.ctx.startParity) + '</span></div>' +
+      '<p class="mt-1 text-sm font-semibold sec-lead">Mengikuti ' + pathName + (a.ctx.locked ? '; semester ' + a.ctx.currentSem + ' (' + sc.lockedSks + ' SKS) tidak diubah' : '') + '.</p>';
     if (!s) {
-      el.innerHTML = head + '<p class="mt-4">' + (sc.sim.sems.length ? 'Tidak ada mata kuliah yang dibuka untuk Anda di semester ini; rencana berlanjut di semester berikutnya.' : 'Tidak ada SKS yang perlu diambil lagi.') + '</p>';
+      el.innerHTML = head + '<p class="mt-4">' + (sc.sim.sems.length ? 'Tidak ada mata kuliah yang dibuka untuk Anda di semester ini.' : 'Tidak ada SKS yang perlu diambil lagi.') + '</p>';
       return;
     }
     var retake = sumBy(s.items.filter(function (x) { return x.kind === 'ulang'; }), function (x) { return x.sks; });
     var fresh = s.load - retake;
-    var note = retake >= HEAVY_RETAKE_SKS && s.load > 22 ? '<p class="mt-4 text-sm">Semester ini membawa ' + retake + ' SKS mata kuliah ulang dengan total ' + s.load + ' SKS. Bila ragu nilai mata kuliah baru ikut turun, turunkan batas SKS ke 20-22 dan lihat perubahan semester lulusnya.</p>' : '';
+    var note = retake >= HEAVY_RETAKE_SKS && s.load > 22 ? '<p class="mt-3 text-sm font-semibold">Ada ' + retake + ' SKS ulang dari total ' + s.load + ' SKS. Bila berat, geser batas SKS ke 20-22 dan lihat dampaknya.</p>' : '';
     el.innerHTML = head +
-      '<p class="mt-4"><span class="num text-5xl font-semibold">' + s.load + '</span> <span class="text-lg">SKS</span> <span class="text-onpanel2">dari batas ' + M + ' SKS</span></p>' +
-      '<div class="bar mt-4" role="img" aria-label="' + fresh + ' SKS mata kuliah baru atau tertunda dan ' + retake + ' SKS mengulang dari batas ' + M + ' SKS">' +
+      '<p class="mt-4"><span class="font-display font-bold" style="font-size: 3rem; line-height: 1;">' + s.load + '</span> <span class="mono font-bold">/ ' + M + ' SKS</span></p>' +
+      '<div class="load-bar mt-3" role="img" aria-label="' + fresh + ' SKS baru atau tertunda dan ' + retake + ' SKS mengulang dari batas ' + M + ' SKS">' +
         '<span class="seg-new" style="width:' + (fresh / M * 100).toFixed(2) + '%"></span>' +
         (retake ? '<span class="seg-retake" style="width:' + (retake / M * 100).toFixed(2) + '%"></span>' : '') +
       '</div>' +
-      '<div class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">' +
-        '<span><span class="swatch seg-new" aria-hidden="true"></span>Baru dan tertunda: ' + fresh + ' SKS</span>' +
-        '<span><span class="swatch seg-retake" aria-hidden="true"></span>Mengulang: ' + retake + ' SKS</span>' +
+      '<div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold">' +
+        '<span><span class="swatch" style="background: var(--peri2);" aria-hidden="true"></span>Baru + tertunda ' + fresh + '</span>' +
+        '<span><span class="swatch" style="background: var(--coral);" aria-hidden="true"></span>Mengulang ' + retake + '</span>' +
       '</div>' + note +
-      '<ul class="krs-list mt-5">' + s.items.map(function (it) {
-        return '<li><span class="min-w-0"><span class="badge badge-' + it.kind + '">' + KIND_LABEL[it.kind] + '</span> ' + itemName(it) + itemFlags(it) + '</span><span class="num shrink-0">' + it.sks + ' SKS</span></li>';
+      '<ul class="krs-list mt-4">' + s.items.map(function (it) {
+        return '<li><span class="min-w-0"><span class="badge badge-' + it.kind + '">' + KIND_LABEL[it.kind] + '</span> <span class="font-semibold">' + itemName(it) + '</span>' + itemFlags(it) + '</span><span class="pill shrink-0">' + it.sks + '</span></li>';
       }).join('') + '</ul>';
+  }
+
+  function segBar(load, maxSks) {
+    var cells = Math.max(maxSks, load);
+    var level = load > 24 ? 'is-over' : load > 20 ? 'is-full' : 'is-ok';
+    var html = '';
+    for (var i = 0; i < cells; i++) html += '<span' + (i < load ? ' class="on"' : '') + '></span>';
+    return '<div class="seg-bar ' + level + '" style="--n:' + cells + ';" aria-hidden="true">' + html + '</div>';
   }
 
   function renderTimeline(a) {
     var sc = a.active, p = a.p, ctx = a.ctx;
     var sims = sc.sim.sems;
-    var lead = (a.selected.length ? 'Jalur perbaikan' : 'Jalur normal') + ': ' + sc.futureSks + ' SKS (' + sc.newSks + ' baru, ' + sc.retakeSks + ' mengulang), batas ' + p.maxSks + ' SKS per semester, lulus ' + finishLabel(p, sc.finishNo) + '.';
+    var lead = (a.selected.length ? 'Jalur perbaikan' : 'Jalur normal') + ': ' + sc.futureSks + ' SKS (' + sc.newSks + ' baru, ' + sc.retakeSks + ' ulang), lulus ' + finishLabel(p, sc.finishNo) + '.';
     if (a.parityDelay > 0) lead += ' Aturan Ganjil/Genap menambah ' + a.parityDelay + ' semester.';
     $('#tl-lead').textContent = lead;
     var cards = [];
     if (ctx.locked) {
-      cards.push('<li class="tl-card is-locked"><div class="tl-head"><h3 class="font-serif text-lg font-semibold">Semester ' + ctx.currentSem + ' <span class="font-sans text-base font-normal text-ink2">' + offerLabel(otherParity(ctx.startParity)) + '</span></h3>' +
-        '<p class="num font-semibold">' + sc.lockedSks + ' <span class="font-sans text-sm font-normal text-ink2">SKS</span></p></div>' +
-        '<p class="text-sm text-ink2">Sedang berjalan. KRS sudah terkunci, jadi tidak diubah.' + (state.params.currentSks === null ? ' SKS-nya belum diisi di bagian II, dianggap 0.' : '') + '</p></li>');
+      cards.push('<li class="tl-card is-locked"><div class="tl-head is-locked"><h3 class="font-display text-lg font-bold">Semester ' + ctx.currentSem + ' · ' + offerLabel(otherParity(ctx.startParity)) + '</h3>' +
+        '<span class="pill">' + sc.lockedSks + ' SKS</span></div>' +
+        '<div class="tl-body"><p class="text-sm font-semibold">Sedang berjalan, KRS terkunci.' + (state.params.currentSks === null ? ' SKS-nya belum diisi, dianggap 0.' : '') + '</p></div></li>');
     }
     sims.forEach(function (s) {
       var extra = s.no > p.normalSem;
-      var waiting = !s.items.length;
+      var over = s.load > 24;
+      var headCls = s.parity === 'genap' ? 'is-genap' : 'is-ganjil';
       cards.push('<li class="tl-card' + (extra ? ' is-extra' : '') + '">' +
-        '<div class="tl-head"><h3 class="font-serif text-lg font-semibold">Semester ' + s.no + ' <span class="font-sans text-base font-normal text-ink2">' + (s.parity ? offerLabel(s.parity) : '') + '</span>' +
-          (extra ? ' <span class="status-chip is-warn ml-1">tambahan</span>' : '') + '</h3>' +
-          '<p class="num font-semibold">' + s.load + ' <span class="font-sans text-sm font-normal text-ink2">/ ' + p.maxSks + ' SKS</span></p></div>' +
-        '<div class="tl-bar" aria-hidden="true"><span style="width:' + Math.min(100, s.load / p.maxSks * 100).toFixed(1) + '%"></span></div>' +
-        (waiting
-          ? '<p class="text-sm text-ink2">Tidak ada mata kuliah yang dibuka untuk Anda di semester ' + offerLabel(s.parity) + ' ini; rencana menunggu semester berikutnya.</p>'
-          : '<ul class="tl-items">' + s.items.map(function (it) {
-              return '<li><span class="badge badge-' + it.kind + '">' + KIND_LABEL[it.kind] + '</span><span class="tl-name">' + itemName(it) + itemFlags(it) + '</span><span class="num">' + it.sks + '</span></li>';
-            }).join('') + '</ul>') +
-        '</li>');
+        '<div class="tl-head ' + headCls + '"><h3 class="font-display text-lg font-bold">Semester ' + s.no + ' · ' + (s.parity ? offerLabel(s.parity) : '') + '</h3>' +
+          '<span class="pill">' + s.load + ' / ' + p.maxSks + ' SKS</span></div>' +
+        '<div class="tl-body">' +
+          segBar(s.load, p.maxSks) +
+          ((extra || over) ? '<p class="flex flex-wrap gap-1.5">' + (extra ? '<span class="chip chip-coral">Semester tambahan</span>' : '') + (over ? '<span class="chip chip-coral">Overload &gt; 24 SKS</span>' : '') + '</p>' : '') +
+          (!s.items.length
+            ? '<p class="text-sm font-semibold">Kosong: menunggu semester berikutnya.</p>'
+            : '<ul class="tl-items">' + s.items.map(function (it) {
+                return '<li><span class="badge badge-' + it.kind + '">' + KIND_LABEL[it.kind] + '</span><span class="tl-name">' + itemName(it) + itemFlags(it) + '</span><span class="pill">' + it.sks + '</span></li>';
+              }).join('') + '</ul>') +
+        '</div></li>');
     });
-    if (!sims.length && !ctx.locked) cards.push('<li class="tl-card"><p>Tidak ada semester tersisa: semua SKS sudah terpenuhi.</p></li>');
+    if (!sims.length && !ctx.locked) cards.push('<li class="tl-card"><div class="tl-body"><p>Semua SKS sudah terpenuhi.</p></div></li>');
     $('#tl-cards').innerHTML = cards.join('');
-  }
-
-  function cssColor(name) {
-    return 'rgb(' + getComputedStyle(document.documentElement).getPropertyValue('--' + name).trim() + ')';
   }
 
   function autoIps(a) {
@@ -2059,7 +2051,9 @@ tailwind.config = {
 
   function renderChart(a) {
     var ips = state.assumedIps !== null ? state.assumedIps : autoIps(a);
-    $('#ips-range').value = String(ips);
+    var range = $('#ips-range');
+    range.value = String(ips);
+    syncSlider(range);
     $('#ips-out').textContent = fmt(ips);
     $('#ips-auto').hidden = state.assumedIps === null;
 
@@ -2072,15 +2066,15 @@ tailwind.config = {
     var sN = series(tNormal), sR = tRepair ? series(tRepair) : null;
     var endN = tNormal[tNormal.length - 1].ipk;
     var endR = tRepair ? tRepair[tRepair.length - 1].ipk : null;
-    $('#chart-title').textContent = 'Ke mana IPK bergerak bila IPS Anda ' + fmt(ips) + ' setiap semester?';
-    var cap = 'Dengan IPS ' + fmt(ips) + ', jalur normal berakhir di IPK ' + fmt(endN) + (endN !== null && endN >= G - 1e-9 ? ' (mencapai target)' : ' (di bawah target)') + '.';
-    if (tRepair) cap += ' Jalur perbaikan berakhir di ' + fmt(endR) + (endR !== null && endR >= G - 1e-9 ? ' (mencapai target)' : ' (di bawah target)') + '.';
-    cap += ' Target: ' + fmt(G) + '.';
+    $('#chart-title').textContent = 'Ke mana IPK bergerak bila IPS Anda ' + fmt(ips) + ' tiap semester?';
+    var cap = 'Normal berakhir di ' + fmt(endN) + (endN !== null && endN >= G - 1e-9 ? ' (tercapai)' : ' (di bawah target)') + '.';
+    if (tRepair) cap += ' Perbaikan berakhir di ' + fmt(endR) + (endR !== null && endR >= G - 1e-9 ? ' (tercapai)' : ' (di bawah target)') + '.';
+    cap += ' Target ' + fmt(G) + '.';
     $('#chart-caption').textContent = cap;
 
-    $('#chart-table').innerHTML = '<table class="data-table"><thead><tr><th scope="col">Titik</th><th scope="col">Jalur normal</th>' + (sR ? '<th scope="col">Jalur perbaikan</th>' : '') + '</tr></thead><tbody>' +
+    $('#chart-table').innerHTML = '<table class="data-table"><thead><tr><th scope="col">Titik</th><th scope="col">Normal</th>' + (sR ? '<th scope="col">Perbaikan</th>' : '') + '</tr></thead><tbody>' +
       labels.map(function (l, i) {
-        return '<tr><td>' + l + '</td><td class="num">' + fmt(sN[i]) + '</td>' + (sR ? '<td class="num">' + fmt(sR[i]) + '</td>' : '') + '</tr>';
+        return '<tr><td>' + l + '</td><td class="mono">' + fmt(sN[i]) + '</td>' + (sR ? '<td class="mono">' + fmt(sR[i]) + '</td>' : '') + '</tr>';
       }).join('') + '</tbody></table>';
 
     var canvas = $('#ipk-chart');
@@ -2091,25 +2085,30 @@ tailwind.config = {
     var values = sN.concat(sR || []).concat([G]).filter(function (v) { return v !== null && isFinite(v); });
     var yMin = Math.max(0, Math.floor((Math.min.apply(null, values) - 0.1) * 10) / 10);
     var yMax = Math.min(4, Math.ceil((Math.max.apply(null, values) + 0.1) * 10) / 10);
+    var point = { pointRadius: 5, pointHoverRadius: 7, pointBorderWidth: 2, pointBorderColor: COLORS.ink };
+    // Coral di atas putih hanya 2.7:1, jadi garisnya diberi tepi navy (dataset bayangan di bawahnya).
     var datasets = [
-      { label: 'Jalur normal', data: sN, borderColor: cssColor('ink2'), backgroundColor: cssColor('ink2'), borderDash: [6, 4], borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, tension: 0 },
-      { label: 'Target ' + fmt(G), data: labels.map(function () { return G; }), borderColor: cssColor('warn'), backgroundColor: cssColor('warn'), borderDash: [2, 3], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 0 }
+      Object.assign({ label: 'Jalur normal', data: sN, borderColor: COLORS.coral, backgroundColor: COLORS.coral, borderWidth: 3, tension: 0, order: 1 }, point),
+      { label: '_tepi', data: sN, borderColor: COLORS.ink, borderWidth: 6, pointRadius: 0, pointHoverRadius: 0, tension: 0, order: 3 },
+      { label: 'Target ' + fmt(G), data: labels.map(function () { return G; }), borderColor: COLORS.ink, backgroundColor: 'rgba(0,0,0,0)', borderDash: [6, 5], borderWidth: 2, pointRadius: 0, pointHoverRadius: 0, order: 2 }
     ];
-    if (sR) datasets.splice(1, 0, { label: 'Jalur perbaikan', data: sR, borderColor: cssColor('accent'), backgroundColor: cssColor('accent'), borderWidth: 3, pointRadius: 3.5, pointHoverRadius: 5, tension: 0 });
-    var textColor = cssColor('ink'), mutedColor = cssColor('ink2'), gridColor = cssColor('line');
-    var font = { family: '"Source Sans 3", system-ui, sans-serif', size: 13 };
+    if (sR) datasets.unshift(Object.assign({ label: 'Jalur perbaikan', data: sR, borderColor: COLORS.cobalt, backgroundColor: COLORS.cobalt, borderWidth: 3, tension: 0, order: 0 }, point));
+    var font = { family: '"Plus Jakarta Sans", system-ui, sans-serif', size: 13, weight: '600' };
     var options = {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
       interaction: { mode: 'index', intersect: false },
       scales: {
-        x: { ticks: { color: mutedColor, font: font }, grid: { color: gridColor } },
-        y: { min: yMin, max: yMax, ticks: { color: mutedColor, font: font, callback: function (v) { return Number(v).toFixed(2); } }, grid: { color: gridColor }, title: { display: true, text: 'IPK', color: mutedColor, font: font } }
+        x: { ticks: { color: COLORS.ink2, font: font }, grid: { color: COLORS.grid }, border: { color: COLORS.ink, width: 2 } },
+        y: { min: yMin, max: yMax, ticks: { color: COLORS.ink2, font: { family: '"JetBrains Mono", monospace', size: 12 }, callback: function (v) { return Number(v).toFixed(2); } }, grid: { color: COLORS.grid }, border: { color: COLORS.ink, width: 2 } }
       },
       plugins: {
-        legend: { labels: { color: textColor, font: font, boxWidth: 28 } },
-        tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': ' + (c.parsed.y === null ? '-' : c.parsed.y.toFixed(2)); } } }
+        legend: { labels: { color: COLORS.ink, font: font, boxWidth: 28, filter: function (item) { return item.text !== '_tepi'; } } },
+        tooltip: {
+          filter: function (item) { return item.dataset.label !== '_tepi'; },
+          callbacks: { label: function (c) { return c.dataset.label + ': ' + (c.parsed.y === null ? '-' : c.parsed.y.toFixed(2)); } }
+        }
       }
     };
     if (chart) {
@@ -2124,6 +2123,7 @@ tailwind.config = {
 
   function refresh(opts) {
     opts = opts || {};
+    readParams();
     var a = analyze();
     lastAnalysis = a;
     renderSummary(a);
@@ -2135,8 +2135,8 @@ tailwind.config = {
     $('#results-empty').hidden = ready;
     if (!ready) {
       $('#results-empty-text').innerHTML = a.sum.count
-        ? 'Lengkapi isian yang ditandai di <a class="underline underline-offset-2" href="#target">bagian II</a> (termasuk semester saat ini) agar simulasi bisa berjalan.'
-        : 'Isi transkrip dulu di <a class="underline underline-offset-2" href="#transkrip">bagian I</a>: unggah berkas, muat data contoh, atau tambah mata kuliah manual.';
+        ? 'Lengkapi isian yang ditandai di <a class="underline underline-offset-2 font-bold" href="#target">Posisi &amp; target</a> (termasuk semester saat ini).'
+        : 'Unggah transkrip atau muat data contoh di <a class="underline underline-offset-2 font-bold" href="#transkrip">Transkrip</a>.';
       return;
     }
     renderVerdict(a);
@@ -2150,15 +2150,7 @@ tailwind.config = {
     renderChart(a);
   }
 
-  /* ---------- Tema ---------- */
-  function applyTheme(t, persist) {
-    document.documentElement.setAttribute('data-theme', t);
-    $('#theme-btn').textContent = t === 'dark' ? 'Ganti ke mode terang' : 'Ganti ke mode gelap';
-    if (persist) { try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* abaikan */ } }
-    if (lastAnalysis && !$('#results').hidden) renderChart(lastAnalysis);
-  }
-
-  /* ---------- Event ---------- */
+  // Event
   function loadDemo() {
     var termOf = [];
     DEMO_TERM_SIZES.forEach(function (n, i) { for (var j = 0; j < n; j++) termOf.push('Semester ' + (i + 1)); });
@@ -2176,7 +2168,7 @@ tailwind.config = {
     renderTable();
     renderBacklog();
     refresh();
-    setStatus('success', 'Data contoh dimuat: ' + DEMO_COURSES.length + ' mata kuliah dari 6 semester yang sudah selesai, satu mata kuliah tertunda, dan daftar sisa mata kuliah. Target 144 SKS, 24 SKS per semester, IPK 3.50.');
+    setStatus('success', 'Data contoh dimuat: 39 mata kuliah dari 6 semester, satu mata kuliah tertunda, dan daftar sisa kurikulum.');
   }
 
   function addBacklogItems(list) {
@@ -2219,6 +2211,51 @@ tailwind.config = {
       onRemoved(removed);
       var btns = tbody.querySelectorAll('[data-action="delete"]');
       (btns[Math.min(idx, btns.length - 1)] || $(fallbackSel)).focus();
+    });
+  }
+
+  function selectTab(id, focus) {
+    ['a', 'b', 'c'].forEach(function (k) {
+      var on = k === id;
+      var tab = $('#tab-' + k);
+      tab.setAttribute('aria-selected', String(on));
+      tab.tabIndex = on ? 0 : -1;
+      $('#panel-' + k).hidden = !on;
+      if (on && focus) tab.focus();
+    });
+  }
+
+  // Tooltip digeser ke kiri bila melewati tepi kanan layar.
+  function placeTip(wrap) {
+    var tip = wrap.querySelector('.tip');
+    if (!tip) return;
+    tip.style.left = '0px';
+    requestAnimationFrame(function () {
+      var r = tip.getBoundingClientRect();
+      if (!r.width) return;
+      var over = r.right - (document.documentElement.clientWidth - 12);
+      if (over > 0) tip.style.left = (-over) + 'px';
+    });
+  }
+
+  function bindTips() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('.tip-btn');
+      document.querySelectorAll('.tip-wrap.is-open').forEach(function (w) { if (!btn || !w.contains(btn)) w.classList.remove('is-open'); });
+      if (btn) {
+        var w = btn.closest('.tip-wrap');
+        w.classList.toggle('is-open');
+        placeTip(w);
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') document.querySelectorAll('.tip-wrap.is-open').forEach(function (w) { w.classList.remove('is-open'); });
+    });
+    ['mouseover', 'focusin'].forEach(function (ev) {
+      document.addEventListener(ev, function (e) {
+        var w = e.target.closest && e.target.closest('.tip-wrap');
+        if (w) placeTip(w);
+      });
     });
   }
 
@@ -2342,6 +2379,17 @@ tailwind.config = {
     ['p-total', 'p-max', 'p-target', 'p-normal', 'p-cur', 'p-current'].forEach(function (id) {
       document.getElementById(id).addEventListener('input', function () {
         readParams();
+        if (id === 'p-target' || id === 'p-max') syncSlidersFromParams();
+        save();
+        refresh();
+      });
+    });
+    [['p-target-range', 'p-target', 2], ['p-max-range', 'p-max', 0]].forEach(function (cfg) {
+      var range = document.getElementById(cfg[0]);
+      range.addEventListener('input', function () {
+        document.getElementById(cfg[1]).value = Number(range.value).toFixed(cfg[2]);
+        syncSlider(range);
+        readParams();
         save();
         refresh();
       });
@@ -2383,7 +2431,7 @@ tailwind.config = {
         return;
       }
       if (t.type !== 'checkbox') return;
-      state.retakeIds = Array.prototype.map.call($('#picker').querySelectorAll('input:checked'), function (x) { return x.value; });
+      state.retakeIds = Array.prototype.map.call($('#picker').querySelectorAll('input[type="checkbox"]:checked'), function (x) { return x.value; });
       state.assumedIps = null;
       save();
       refresh({ picker: false });
@@ -2401,8 +2449,21 @@ tailwind.config = {
       refresh();
     });
 
+    var tabs = ['a', 'b', 'c'];
+    tabs.forEach(function (k, i) {
+      var tab = $('#tab-' + k);
+      tab.addEventListener('click', function () { selectTab(k, false); });
+      tab.addEventListener('keydown', function (e) {
+        var step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (e.key === 'Home') { e.preventDefault(); selectTab(tabs[0], true); }
+        else if (e.key === 'End') { e.preventDefault(); selectTab(tabs[tabs.length - 1], true); }
+        else if (step) { e.preventDefault(); selectTab(tabs[(i + step + tabs.length) % tabs.length], true); }
+      });
+    });
+
     $('#ips-range').addEventListener('input', function (e) {
       state.assumedIps = Number(e.target.value);
+      syncSlider(e.target);
       if (lastAnalysis) renderChart(lastAnalysis);
     });
     $('#ips-auto').addEventListener('click', function () {
@@ -2410,10 +2471,7 @@ tailwind.config = {
       if (lastAnalysis) renderChart(lastAnalysis);
       $('#ips-range').focus();
     });
-
-    $('#theme-btn').addEventListener('click', function () {
-      applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark', true);
-    });
+    bindTips();
   }
 
   function init() {
@@ -2421,9 +2479,9 @@ tailwind.config = {
     syncParamInputs();
     readParams();
     bind();
-    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light', false);
     renderTable();
     renderBacklog();
+    syncSlider($('#ips-range'));
     refresh();
   }
 

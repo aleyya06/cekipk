@@ -3,270 +3,299 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Hitung IPK dari transkrip, simulasikan KRS Ganjil/Genap, dan lihat kapan Anda lulus.">
+<meta name="description" content="Hitung IPK dari transkrip, simulasikan KRS Ganjil/Genap, dan lihat kapan kamu lulus.">
 <title>Rencana IPK &amp; Kelulusan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script>
 tailwind.config = {
   theme: {
     extend: {
-      colors: {
-        ink: '#0F172A', ink2: '#334155', ice: '#F0F7FF', cobalt: '#2563EB', sky: '#38BDF8',
-        peri: '#DBEAFE', peri2: '#C7D2FE', butter: '#FDE047', coral: '#FB7185', coralink: '#BE123C', mint: '#6EE7B7'
-      },
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
-        display: ['"Space Grotesk"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'Consolas', 'monospace']
+        sans: ['Poppins', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif']
       }
     }
   }
 };
 </script>
 <style>
-  /* Neo-brutalism biru pilihan pemilik; latar titik dipertahankan atas permintaannya.
-     Peran aksen tetap: kuning = tertunda/Genap, coral = mengulang/peringatan, mint = target tercapai. */
+  /* Arah dari pemilik: soft bento editorial, biru dominan (60 latar / 30 kartu / 10 biru). Dial ENERGY 2 / RHYTHM 2 / MOTION 1.
+     Motif identitas: pasangan pill GANJIL biru dan GENAP amber yang muncul di setiap tempat semester disebut. */
   :root {
-    --ink: #0F172A; --ink2: #334155; --ice: #F0F7FF; --dot: #BAE6FD;
-    --cobalt: #2563EB; --cobalt-dk: #1D4ED8; --sky: #38BDF8; --peri: #DBEAFE; --peri2: #C7D2FE;
-    --butter: #FDE047; --coral: #FB7185; --coral-ink: #BE123C; --mint: #6EE7B7;
+    --bg: #F8FAFC; --surface: #FFFFFF; --line: #E2E8F0; --line-blue: #DBEAFE; --field-line: #7C8BA1; --soft: #F1F5F9;
+    --ink: #0F172A; --ink2: #475569; --muted: #64748B;
+    --cobalt: #2563EB; --cobalt-dk: #1D4ED8; --sky: #0EA5E9; --sky-dk: #0284C7;
+    --blue-bg: #EFF6FF; --blue-tx: #1D4ED8;
+    --amber-bg: #FEF3C7; --amber-tx: #B45309; --amber: #F59E0B;
+    --rose-bg: #FFE4E6; --rose-tx: #BE123C; --rose: #F43F5E;
+    --mint-bg: #D1FAE5; --mint-tx: #047857;
+    --shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+    --shadow-lift: 0 12px 32px -8px rgba(15, 23, 42, 0.18);
   }
   [hidden] { display: none !important; }
-  html { background: var(--ice); }
+  html { background: var(--bg); }
+  /* Mesh gradient hanya di bagian atas (pilihan pemilik): cahaya lembut di belakang judul, bukan kotak pembungkus. */
   body {
     margin: 0;
     color: var(--ink);
-    background-color: var(--ice);
-    background-image: radial-gradient(var(--dot) 1.3px, transparent 1.4px);
-    background-size: 22px 22px;
-    font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-    line-height: 1.55;
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(46rem 24rem at 10% -7rem, rgba(37, 99, 235, 0.12), transparent 70%),
+      radial-gradient(42rem 22rem at 90% -5rem, rgba(14, 165, 233, 0.11), transparent 70%),
+      radial-gradient(34rem 18rem at 50% -9rem, rgba(191, 219, 254, 0.5), transparent 75%);
+    background-repeat: no-repeat;
+    font-family: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
   }
-  .font-display { font-family: "Space Grotesk", "Plus Jakarta Sans", system-ui, sans-serif; letter-spacing: -0.01em; }
-  .mono { font-family: "JetBrains Mono", ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; }
-  :focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; }
+  @media (min-width: 640px) { body { font-size: 16px; } }
+  h1, h2, h3 { letter-spacing: -0.02em; }
+  .font-display { font-weight: 700; letter-spacing: -0.03em; }
+  .mono, .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+  :focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
 
   .skip-link { position: absolute; left: -9999px; top: 0; }
-  .skip-link:focus { left: 1rem; top: 1rem; z-index: 60; background: #fff; padding: .625rem .875rem; border: 2px solid var(--ink); border-radius: .75rem; }
+  .skip-link:focus { left: 1rem; top: 1rem; z-index: 60; background: #fff; padding: .625rem .875rem; border-radius: 10px; box-shadow: var(--shadow-lift); }
 
-  .card { background: #fff; border: 2px solid var(--ink); border-radius: 1rem; box-shadow: 4px 4px 0 var(--ink); }
+  .eyebrow { display: inline-flex; align-items: center; padding: .3rem .85rem; border-radius: 999px; background: #DBEAFE; color: #1E40AF; border: 1px solid #BFDBFE; font-size: .8125rem; font-weight: 600; letter-spacing: -0.01em; }
+  .hero-title { font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; font-size: clamp(2.125rem, 1.4rem + 3.6vw, 3.875rem); }
+  .hero-accent { color: var(--cobalt); }
+  .hero-sub { color: var(--ink2); font-size: clamp(1rem, .95rem + .35vw, 1.1875rem); max-width: 40rem; line-height: 1.65; }
+
+  .sec-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .625rem; }
+  .sec-title { font-size: clamp(1.375rem, 1.15rem + .9vw, 1.75rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.2; }
+  .sec-lead { color: var(--ink2); }
+
+  /* Kartu: lapisan permukaan 30%. Bayangan tipis cukup untuk memisahkan kartu dari latar yang sedikit kebiruan. */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
   .card-pad { padding: 1.125rem; }
   @media (min-width: 640px) { .card-pad { padding: 1.5rem; } }
+  .card-head { padding: .875rem 1.125rem; border-bottom: 1px solid var(--line); }
+  @media (min-width: 640px) { .card-head { padding: 1rem 1.5rem; } }
 
-  .sec-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
-  .sticker { display: inline-block; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: clamp(1.25rem, 1.05rem + 1vw, 1.625rem); line-height: 1.2;
-    padding: .3rem .9rem; border: 2px solid var(--ink); border-radius: .75rem; box-shadow: 3px 3px 0 var(--ink); background: var(--cobalt); color: #fff; }
-  .sticker.is-yellow { background: var(--butter); color: var(--ink); }
-  .sec-lead { color: var(--ink2); font-weight: 500; }
-
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .5rem 1rem; border: 2px solid var(--ink); border-radius: .75rem;
-    background: #fff; color: var(--ink); font-weight: 700; box-shadow: 4px 4px 0 var(--ink); cursor: pointer; transition: transform .08s ease, box-shadow .08s ease, background-color .12s ease; text-align: center; }
-  .btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
-  .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
-  .btn-primary { background: var(--cobalt); color: #fff; }
-  .btn-primary:hover { background: var(--cobalt-dk); }
-  .btn-yellow { background: var(--butter); }
-  .btn-quiet { border: 0; box-shadow: none; background: transparent; text-decoration: underline; text-underline-offset: 3px; padding-inline: .5rem; font-weight: 600; }
-  .btn-quiet:hover, .btn-quiet:active { transform: none; box-shadow: none; text-decoration-thickness: 2px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .55rem 1.1rem; border-radius: 10px;
+    border: 1px solid var(--line); background: #fff; color: var(--ink); font-weight: 600; font-size: .9375rem; letter-spacing: -0.01em; cursor: pointer;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .05); transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .1s ease; text-align: center; }
+  .btn:hover { background: var(--soft); border-color: #CBD5E1; }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--cobalt); border-color: var(--cobalt); color: #fff; box-shadow: 0 6px 16px -6px rgba(37, 99, 235, .6); }
+  .btn-primary:hover { background: var(--cobalt-dk); border-color: var(--cobalt-dk); }
+  .btn-soft { background: var(--blue-bg); border-color: var(--line-blue); color: var(--blue-tx); box-shadow: none; }
+  .btn-soft:hover { background: #DBEAFE; border-color: #BFDBFE; }
+  .btn-quiet { border-color: transparent; box-shadow: none; background: transparent; color: var(--ink2); text-decoration: underline; text-underline-offset: 3px; padding-inline: .5rem; }
+  .btn-quiet:hover { background: transparent; border-color: transparent; color: var(--ink); }
   .btn[disabled] { opacity: .6; cursor: progress; }
 
-  .field { background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: .75rem; min-height: 44px; padding: .5rem .75rem; font: inherit; width: 100%; }
-  .field:focus-visible { outline: 3px solid var(--cobalt); outline-offset: 1px; }
-  .field[aria-invalid="true"] { border-color: var(--coral-ink); background: #FFF1F2; }
+  .field { background: #fff; color: var(--ink); border: 1px solid var(--field-line); border-radius: 10px; min-height: 44px; padding: .5rem .75rem; font: inherit; width: 100%; transition: border-color .15s ease; }
+  .field:hover { border-color: var(--muted); }
+  .field:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 1px; border-color: var(--cobalt); }
+  .field[aria-invalid="true"] { border-color: var(--rose-tx); background: #FFF1F2; }
   select.field { padding-right: 2rem; }
-  textarea.field { min-height: 9rem; line-height: 1.5; resize: vertical; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .85rem; }
-  .field-label { display: block; font-weight: 700; margin-bottom: .375rem; }
-  .field-hint { font-size: .875rem; color: var(--ink2); margin-top: .375rem; }
-  .field-error { font-size: .875rem; color: var(--coral-ink); margin-top: .375rem; font-weight: 700; }
+  textarea.field { min-height: 9rem; line-height: 1.55; resize: vertical; font-size: .875rem; }
+  .num-input { width: 6.75rem; flex: none; font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; text-align: center; color: var(--cobalt); }
+  .field-label { display: block; font-weight: 600; letter-spacing: -0.01em; margin-bottom: .375rem; }
+  .field-hint { font-size: .8125rem; color: var(--ink2); margin-top: .375rem; }
+  .field-error { font-size: .8125rem; color: var(--rose-tx); margin-top: .375rem; font-weight: 600; }
+  .scale { display: flex; justify-content: space-between; font-size: .75rem; font-weight: 500; color: var(--muted); }
 
-  .pill { display: inline-flex; align-items: center; gap: .25rem; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .78rem; font-weight: 700; line-height: 1.4;
-    padding: .0625rem .5rem; border: 2px solid var(--ink); border-radius: 999px; background: #fff; color: var(--ink); white-space: nowrap; }
-  .pill-sky { background: var(--sky); }
-  .badge { display: inline-block; font-size: .75rem; font-weight: 800; line-height: 1.4; padding: .0625rem .5rem; border: 2px solid var(--ink); border-radius: 999px; white-space: nowrap; color: var(--ink); }
-  .badge-baru { background: var(--peri2); }
-  .badge-tunda { background: var(--butter); }
-  .badge-ulang { background: var(--coral); }
-  .chip { display: inline-block; font-size: .85rem; font-weight: 800; padding: .125rem .625rem; border: 2px solid var(--ink); border-radius: .5rem; color: var(--ink); }
-  .chip-mint { background: var(--mint); }
-  .chip-butter { background: var(--butter); }
-  .chip-coral { background: var(--coral); }
-  .chip-white { background: #fff; }
-  .chip-cobalt { background: var(--cobalt); color: #fff; }
-  .flag { display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; font-weight: 800; line-height: 1.35; padding: .0625rem .45rem .0625rem .1875rem; border: 2px solid var(--ink); border-radius: .5rem; background: #FFE4E6; color: var(--ink); white-space: nowrap; }
-  .flag::before { content: "!"; display: inline-grid; place-items: center; width: 1rem; height: 1rem; border-radius: 999px; background: var(--ink); color: #fff; font-size: .7rem; }
-  .flag-wait { background: var(--coral); }
+  .pill { display: inline-flex; align-items: center; gap: .25rem; font-size: .75rem; font-weight: 600; line-height: 1.5; padding: .0625rem .55rem; border-radius: 999px; background: var(--soft); color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pill-sky { background: #E0F2FE; color: #075985; }
+  .pill-mint { background: var(--mint-bg); color: var(--mint-tx); }
+  .badge { display: inline-block; font-size: .72rem; font-weight: 600; line-height: 1.5; padding: .0625rem .55rem; border-radius: 999px; white-space: nowrap; }
+  .badge-baru { background: var(--blue-bg); color: var(--blue-tx); }
+  .badge-tunda { background: var(--amber-bg); color: var(--amber-tx); }
+  .badge-ulang { background: var(--rose-bg); color: var(--rose-tx); }
+  .chip { display: inline-block; font-size: .8125rem; font-weight: 600; padding: .15rem .6rem; border-radius: 8px; }
+  .chip-mint { background: var(--mint-bg); color: var(--mint-tx); }
+  .chip-butter { background: var(--amber-bg); color: var(--amber-tx); }
+  .chip-coral { background: var(--rose-bg); color: var(--rose-tx); }
+  .chip-white { background: var(--soft); color: var(--ink2); }
+  .chip-cobalt { background: var(--blue-bg); color: var(--blue-tx); }
+  .par { display: inline-block; font-size: .6875rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: .125rem .55rem; border-radius: 999px; }
+  .par-ganjil { background: var(--blue-bg); color: var(--blue-tx); }
+  .par-genap { background: var(--amber-bg); color: var(--amber-tx); }
+  .flag { display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; font-weight: 600; line-height: 1.4; padding: .0625rem .5rem .0625rem .25rem; border-radius: 999px; background: var(--amber-bg); color: var(--amber-tx); white-space: nowrap; }
+  .flag::before { content: "!"; display: inline-grid; place-items: center; width: .95rem; height: .95rem; border-radius: 999px; background: var(--amber-tx); color: #fff; font-size: .62rem; font-weight: 700; }
+  .flag-wait { background: var(--rose-bg); color: var(--rose-tx); }
+  .flag-wait::before { background: var(--rose-tx); }
 
-  .stamp { display: inline-grid; place-items: center; min-width: 2.25rem; height: 2rem; padding: 0 .375rem; border: 2px solid var(--ink); border-radius: .5rem; font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: .9rem; background: var(--coral); }
+  .stamp { display: inline-grid; place-items: center; min-width: 2.25rem; height: 2rem; padding: 0 .375rem; border-radius: 8px; font-weight: 700; font-size: .875rem; background: var(--rose-bg); color: var(--rose-tx); }
 
-  .notice { border: 2px solid var(--ink); border-radius: .875rem; padding: .75rem 1rem; background: var(--peri); box-shadow: 3px 3px 0 var(--ink); }
-  .notice.is-error { background: #FFE4E6; }
-  .notice.is-success { background: #D1FAE5; }
+  .notice { border: 1px solid var(--line-blue); border-radius: 12px; padding: .875rem 1rem; background: var(--blue-bg); }
+  .notice.is-error { background: #FFF1F2; border-color: #FECDD3; }
+  .notice.is-success { background: #ECFDF5; border-color: #A7F3D0; }
 
-  .dropzone { border: 2px dashed var(--ink); border-radius: 1rem; background: var(--peri); padding: 1.25rem; transition: background-color .12s ease; }
-  .dropzone.is-over { border-style: solid; background: var(--peri2); }
+  .dropzone { border: 1.5px dashed #93C5FD; border-radius: 16px; background: #F0F9FF; padding: 1.5rem; transition: background-color .2s ease, border-color .2s ease; }
+  .dropzone.is-over { background: #E0F2FE; border-color: var(--cobalt); }
 
   /* Tooltip "?": tersembunyi sampai hover, fokus keyboard, atau ketuk. */
   .tip-wrap { position: relative; display: inline-flex; vertical-align: middle; }
-  .tip-btn { position: relative; display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border: 2px solid var(--ink); border-radius: 999px; background: #fff; font-weight: 800; font-size: .85rem; cursor: help; box-shadow: 2px 2px 0 var(--ink); }
-  .tip-btn::after { content: ""; position: absolute; inset: -9px; }
+  .tip-btn { position: relative; display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink2); font-weight: 700; font-size: .75rem; cursor: help; transition: background-color .15s ease; }
+  .tip-btn:hover { background: var(--soft); }
+  .tip-btn::after { content: ""; position: absolute; inset: -11px; }
   .tip { display: none; position: absolute; top: calc(100% + .5rem); left: 0; z-index: 40; width: max-content; max-width: min(19rem, calc(100vw - 2rem));
-    background: var(--ink); color: #fff; font-size: .85rem; font-weight: 500; line-height: 1.5; padding: .625rem .75rem; border-radius: .75rem; box-shadow: 3px 3px 0 var(--cobalt); }
+    background: var(--ink); color: #fff; font-size: .8125rem; font-weight: 400; line-height: 1.55; padding: .625rem .8rem; border-radius: 10px; box-shadow: var(--shadow-lift); }
   .tip-wrap:hover .tip, .tip-wrap.is-open .tip, .tip-btn:focus-visible + .tip { display: block; }
 
-  /* Sakelar on/off: tetap checkbox asli agar bisa dipakai keyboard dan pembaca layar. */
+  /* Sakelar: tetap checkbox asli agar bisa dipakai keyboard dan pembaca layar. */
   .switch { position: relative; display: inline-flex; align-items: center; flex: none; min-height: 44px; cursor: pointer; }
   .switch input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
-  .switch .track { width: 3.25rem; height: 1.85rem; border: 2px solid var(--ink); border-radius: 999px; background: #fff; box-shadow: 2px 2px 0 var(--ink); position: relative; transition: background-color .15s ease; }
-  .switch .thumb { position: absolute; top: 2px; left: 2px; width: 1.25rem; height: 1.25rem; border: 2px solid var(--ink); border-radius: 999px; background: #fff; transition: transform .15s ease; }
-  .switch input:checked + .track { background: var(--cobalt); }
-  .switch input:checked + .track .thumb { transform: translateX(1.4rem); background: var(--butter); }
-  .switch input:focus-visible + .track { outline: 3px solid var(--cobalt); outline-offset: 3px; }
+  .switch .track { width: 2.75rem; height: 1.5rem; border-radius: 999px; background: #E2E8F0; border: 1px solid #8492A6; position: relative; transition: background-color .2s ease, border-color .2s ease; }
+  .switch .thumb { position: absolute; top: 2px; left: 2px; width: 1.125rem; height: 1.125rem; border-radius: 999px; background: #fff; box-shadow: 0 1px 3px rgba(15, 23, 42, .3); transition: transform .2s cubic-bezier(.4, 0, .2, 1); }
+  .switch input:checked + .track { background: var(--cobalt); border-color: var(--cobalt); }
+  .switch input:checked + .track .thumb { transform: translateX(1.25rem); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--cobalt); outline-offset: 3px; }
   .switch input:disabled { cursor: not-allowed; }
-  .switch input:disabled + .track { opacity: .7; }
-  @media (prefers-reduced-motion: reduce) { .switch .track, .switch .thumb, .btn, .tab { transition: none; } }
+  .switch input:disabled + .track { opacity: .65; }
+  @media (prefers-reduced-motion: reduce) { .switch .track, .switch .thumb, .btn, .seg-tab, .dropzone, .fold > summary::after { transition: none; } }
 
-  /* Slider tebal: --pct diisi JavaScript agar bagian kiri berwarna cobalt. */
+  /* Slider ramping: --pct diisi JavaScript agar bagian kiri berwarna cobalt. */
   input[type="range"].slider { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; background: transparent; cursor: pointer; --pct: 50%; }
-  input[type="range"].slider::-webkit-slider-runnable-track { height: 14px; border: 2px solid var(--ink); border-radius: 999px; background: linear-gradient(to right, var(--cobalt) var(--pct), #fff var(--pct)); }
-  input[type="range"].slider::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -9px; border: 2px solid var(--ink); border-radius: .5rem; background: var(--butter); box-shadow: 2px 2px 0 var(--ink); }
-  input[type="range"].slider::-moz-range-track { height: 10px; border: 2px solid var(--ink); border-radius: 999px; background: #fff; }
-  input[type="range"].slider::-moz-range-progress { height: 10px; border-radius: 999px; background: var(--cobalt); }
-  input[type="range"].slider::-moz-range-thumb { width: 24px; height: 24px; border: 2px solid var(--ink); border-radius: .5rem; background: var(--butter); box-shadow: 2px 2px 0 var(--ink); }
-  input[type="range"].slider:focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; border-radius: .75rem; }
+  input[type="range"].slider::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(to right, var(--cobalt) var(--pct), #E2E8F0 var(--pct)); }
+  input[type="range"].slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -7px; border-radius: 999px; background: #fff; border: 2px solid var(--cobalt);
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, .14), 0 2px 6px rgba(15, 23, 42, .15); transition: box-shadow .15s ease; }
+  input[type="range"].slider:hover::-webkit-slider-thumb { box-shadow: 0 0 0 7px rgba(37, 99, 235, .18), 0 2px 6px rgba(15, 23, 42, .15); }
+  input[type="range"].slider::-moz-range-track { height: 6px; border-radius: 999px; background: #E2E8F0; }
+  input[type="range"].slider::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--cobalt); }
+  input[type="range"].slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 999px; background: #fff; border: 2px solid var(--cobalt); box-shadow: 0 0 0 5px rgba(37, 99, 235, .14); }
+  input[type="range"].slider:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; border-radius: 10px; }
 
-  .tabs { display: flex; flex-wrap: wrap; gap: .625rem; }
-  .tab { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding: .4rem .9rem; border: 2px solid var(--ink); border-radius: .75rem; background: #fff; font-weight: 800; box-shadow: 3px 3px 0 var(--ink); cursor: pointer; transition: transform .08s ease, box-shadow .08s ease; }
-  .tab:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
-  .tab[aria-selected="true"] { background: var(--cobalt); color: #fff; }
-  .tab[aria-selected="true"] .pill { background: #fff; color: var(--ink); }
+  /* Segmented control untuk tab antrean. */
+  .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; background: var(--soft); border: 1px solid var(--line); border-radius: 14px; max-width: 36rem; }
+  .seg-tab { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .375rem .5rem; border: 0; border-radius: 10px; background: transparent; color: var(--ink2);
+    font-weight: 600; font-size: .9375rem; letter-spacing: -0.01em; cursor: pointer; transition: background-color .15s ease, color .15s ease, box-shadow .15s ease; }
+  .seg-tab:hover { color: var(--ink); }
+  .seg-tab[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(15, 23, 42, .12), 0 1px 2px rgba(15, 23, 42, .06); }
+  .seg-count { min-width: 1.5rem; padding: 0 .45rem; border-radius: 999px; background: #E2E8F0; color: var(--ink2); font-size: .75rem; font-weight: 600; line-height: 1.6; }
+  .seg-tab[aria-selected="true"] .seg-count { background: var(--blue-bg); color: var(--blue-tx); }
+  @media (max-width: 419.98px) { .seg-tab { flex-direction: column; gap: 0; font-size: .8125rem; padding: .375rem .25rem; } }
 
   .tx-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-  .tx-table th { text-align: left; font-weight: 800; font-size: .8rem; color: var(--ink2); padding: .5rem; border-bottom: 2px solid var(--ink); white-space: nowrap; }
-  .tx-table td { padding: .375rem .5rem; border-bottom: 1px solid var(--peri2); vertical-align: middle; }
-  .tx-table .c-no { width: 2.75rem; color: var(--ink2); }
+  .tx-table th { text-align: left; font-weight: 600; font-size: .75rem; color: var(--ink2); padding: .5rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tx-table td { padding: .375rem .5rem; border-bottom: 1px solid var(--soft); vertical-align: middle; }
+  .tx-table .c-no { width: 2.75rem; color: var(--muted); }
   .tx-table .c-sks select { width: 4.75rem; }
   .tx-table .c-grade select { width: 5.25rem; }
   .tx-table .c-offer select, .tx-table .c-prio select { width: 8.5rem; }
   .tx-table .c-mutu { width: 4.5rem; text-align: right; }
   .tx-table .c-act { width: 5.5rem; text-align: right; }
-  .term-note { display: block; font-size: .78rem; color: var(--ink2); margin-top: .125rem; font-family: "JetBrains Mono", monospace; }
+  .term-note { display: block; font-size: .75rem; color: var(--muted); margin-top: .125rem; }
   .grade-wrap { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .5rem; }
-  .retake-mark { font-size: .78rem; color: var(--coral-ink); font-weight: 800; white-space: nowrap; }
-  .is-retake .c-grade select { border-color: var(--coral-ink); background: #FFF1F2; }
+  .retake-mark { font-size: .75rem; color: var(--rose-tx); font-weight: 600; white-space: nowrap; }
+  .is-retake .c-grade select { border-color: var(--rose-tx); background: #FFF1F2; }
   .cell-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   @media (max-width: 639.98px) {
     .tx-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .tx-table, .tx-table tbody { display: block; }
-    .tx-table tr { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem .75rem; padding: .875rem 0; border-bottom: 1px solid var(--peri2); }
+    .tx-table tr { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem .75rem; padding: .875rem 0; border-bottom: 1px solid var(--line); }
     .tx-table td { display: block; border: 0; padding: 0; width: auto !important; }
     .tx-table .c-no { display: none; }
     .tx-table .c-name { flex: 1 1 100%; }
     .tx-table .c-mutu { text-align: left; }
     .tx-table .c-mutu [data-mutu] { display: flex; align-items: center; min-height: 44px; }
     .tx-table .c-act { margin-left: auto; }
-    .tx-table .cell-label { position: static; width: auto; height: auto; clip: auto; display: block; font-size: .78rem; color: var(--ink2); margin-bottom: .25rem; font-weight: 700; }
+    .tx-table .cell-label { position: static; width: auto; height: auto; clip: auto; display: block; font-size: .75rem; color: var(--ink2); margin-bottom: .25rem; font-weight: 600; }
     .tx-table td.empty-cell { flex-basis: 100%; }
   }
 
-  details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; font-weight: 800; }
+  details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 44px; font-weight: 600; }
   details.fold > summary::-webkit-details-marker { display: none; }
-  details.fold > summary::after { content: "+"; display: inline-grid; place-items: center; width: 2rem; height: 2rem; flex: none; border: 2px solid var(--ink); border-radius: .5rem; background: var(--butter); font-family: "JetBrains Mono", monospace; font-weight: 700; }
-  details.fold[open] > summary::after { content: "-"; }
+  details.fold > summary::after { content: ""; flex: none; width: .55rem; height: .55rem; margin-right: .4rem; border-right: 2px solid var(--ink2); border-bottom: 2px solid var(--ink2); transform: rotate(45deg); transition: transform .2s ease; }
+  details.fold[open] > summary::after { transform: rotate(-135deg); }
 
-  .picker-item { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; padding: .625rem .25rem; border-bottom: 2px dashed var(--peri2); }
+  .picker-item { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; padding: .75rem .125rem; border-bottom: 1px solid var(--soft); }
   .picker-main { display: flex; align-items: center; gap: .75rem; flex: 1 1 15rem; min-width: 0; }
   .picker-opts { display: flex; flex-wrap: wrap; gap: .5rem .75rem; margin-left: auto; }
-  .picker-opts label { display: block; font-size: .75rem; font-weight: 700; color: var(--ink2); }
-  .picker-opts select { width: 8.5rem; font-size: .9rem; }
+  .picker-opts label { display: block; font-size: .75rem; font-weight: 600; color: var(--ink2); }
+  .picker-opts select { width: 8.5rem; font-size: .875rem; }
   .check-row { display: flex; align-items: flex-start; gap: .75rem; min-height: 44px; cursor: pointer; }
 
   .prio { list-style: none; margin: 0; padding: 0; }
-  .prio li { display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: .25rem .75rem; padding: .875rem 0; border-top: 2px dashed var(--peri2); }
-  .prio .rank { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border: 2px solid var(--ink); border-radius: .5rem; background: var(--peri); font-family: "JetBrains Mono", monospace; font-weight: 700; }
-  .prio .effect { grid-column: 2 / -1; font-size: .875rem; color: var(--ink2); }
+  .prio li { display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: .25rem .75rem; padding: .875rem 0; border-top: 1px solid var(--soft); }
+  .prio .rank { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: 8px; background: var(--blue-bg); color: var(--blue-tx); font-weight: 700; font-size: .875rem; }
+  .prio .effect { grid-column: 2 / -1; font-size: .8125rem; color: var(--ink2); }
 
-  .load-bar { display: flex; height: 1.5rem; border: 2px solid var(--ink); border-radius: .5rem; background: #fff; overflow: hidden; }
-  .load-bar .seg-new { background: var(--peri2); }
-  .load-bar .seg-retake { background: var(--coral); border-left: 2px solid var(--ink); }
-  .swatch { display: inline-block; width: 1.1rem; height: .9rem; border: 2px solid var(--ink); border-radius: .25rem; vertical-align: -2px; margin-right: .375rem; }
-  .krs-list li { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; padding: .375rem 0; border-top: 1px solid var(--peri2); }
+  .load-bar { display: flex; height: .625rem; border-radius: 999px; background: #E2E8F0; overflow: hidden; }
+  .load-bar .seg-new { background: var(--cobalt); }
+  .load-bar .seg-retake { background: var(--rose); border-left: 2px solid #fff; }
+  .swatch { display: inline-block; width: .7rem; height: .7rem; border-radius: 999px; vertical-align: 0; margin-right: .375rem; }
+  .krs-list li { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; padding: .45rem 0; border-top: 1px solid var(--soft); }
   .krs-list .badge { margin-right: .375rem; }
 
   .timeline { list-style: none; margin: 0; padding: 0; }
-  .tl-card { background: #fff; border: 2px solid var(--ink); border-radius: 1rem; box-shadow: 4px 4px 0 var(--ink); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
-  .tl-card.is-locked { background: var(--peri); border-style: dashed; box-shadow: none; }
-  .tl-card.is-extra { box-shadow: 4px 4px 0 var(--coral-ink); }
-  .tl-head { display: flex; justify-content: space-between; align-items: center; gap: .25rem .75rem; flex-wrap: wrap; padding: .625rem 1rem; border-bottom: 2px solid var(--ink); }
-  .tl-head.is-ganjil { background: var(--cobalt); color: #fff; }
-  .tl-head.is-genap { background: var(--butter); color: var(--ink); }
-  .tl-head.is-locked { background: transparent; border-bottom-style: dashed; }
-  .tl-body { padding: .75rem 1rem 1rem; display: flex; flex-direction: column; gap: .75rem; }
-  .seg-bar { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 2px; padding: 3px; border: 2px solid var(--ink); border-radius: .5rem; background: #fff; }
-  .seg-bar span { height: .7rem; border-radius: 2px; background: #E2E8F0; }
-  .seg-bar.is-ok span.on { background: var(--sky); }
-  .seg-bar.is-full span.on { background: var(--butter); }
-  .seg-bar.is-over span.on { background: var(--coral); }
+  .tl-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+  .tl-card.is-locked { background: var(--bg); border-style: dashed; border-color: #CBD5E1; box-shadow: none; }
+  .tl-card.is-extra { border-color: #FECDD3; }
+  .tl-head { display: flex; justify-content: space-between; align-items: center; gap: .375rem .75rem; flex-wrap: wrap; padding: 1rem 1.125rem .5rem; }
+  .tl-title { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .tl-body { padding: .25rem 1.125rem 1.125rem; display: flex; flex-direction: column; gap: .75rem; }
+  .cap-bar { height: 6px; border-radius: 999px; background: #E2E8F0; overflow: hidden; }
+  .cap-bar span { display: block; height: 100%; border-radius: 999px; }
+  .cap-bar.is-ok span { background: var(--sky); }
+  .cap-bar.is-full span { background: var(--amber); }
+  .cap-bar.is-over span { background: var(--rose); }
   .tl-items { list-style: none; margin: 0; padding: 0; }
-  .tl-items li { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .5rem; padding: .45rem 0; border-top: 1px solid var(--peri2); }
-  .tl-items .tl-name { flex: 1 1 8rem; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+  .tl-items li { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .5rem; padding: .5rem 0; border-top: 1px solid var(--soft); font-size: .9375rem; }
+  .tl-items .tl-name { flex: 1 1 8rem; min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
 
-  .data-table { width: 100%; border-collapse: collapse; font-size: .95rem; }
-  .data-table th, .data-table td { padding: .375rem .5rem; border-bottom: 1px solid var(--peri2); text-align: right; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: .9375rem; }
+  .data-table th, .data-table td { padding: .45rem .5rem; border-bottom: 1px solid var(--soft); text-align: right; }
   .data-table th:first-child, .data-table td:first-child { text-align: left; }
-  .data-table th { color: var(--ink2); font-weight: 800; }
+  .data-table th { color: var(--ink2); font-weight: 600; font-size: .8125rem; }
 
-  .hl { font-family: "Space Grotesk", sans-serif; font-weight: 700; background: var(--butter); padding: 0 .3rem; border-radius: .375rem; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .verdict { font-size: clamp(1.0625rem, .98rem + .55vw, 1.375rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.55; max-width: 56rem; }
+  .hl { font-weight: 700; background: var(--blue-bg); color: var(--blue-tx); padding: 0 .35rem; border-radius: 6px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .big-num { font-weight: 700; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
 <a href="#main" class="skip-link">Langsung ke isi</a>
 
-<header class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
-  <div class="card card-pad" style="background: var(--cobalt); color: #fff;">
-    <p><span class="pill" style="background: var(--butter);">KRS Ganjil/Genap + target IPK</span></p>
-    <h1 class="font-display font-bold text-4xl sm:text-5xl leading-tight mt-1">Rencana IPK &amp; Kelulusan</h1>
-    <p class="mt-3 text-base sm:text-lg font-medium max-w-2xl">Unggah transkrip, geser target, lihat kapan Anda lulus. Semua dihitung di browser ini.</p>
-  </div>
+<header class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-20">
+  <p><span class="eyebrow">Simulasi KRS Ganjil/Genap &amp; Target IPK</span></p>
+  <h1 class="hero-title mt-5"><span class="block">Kejar Target IPK,</span><span class="block hero-accent">Lulus Tanpa Drama.</span></h1>
+  <p class="hero-sub mt-5">Unggah transkrip, atur strategi mengulang matkul C, dan simulasi jadwal kuliahmu sampai wisuda. 100% diproses di browser kamu.</p>
 </header>
 
 <noscript>
   <p class="max-w-6xl mx-auto px-4 mt-6 notice is-error">Aplikasi ini butuh JavaScript. Aktifkan JavaScript lalu muat ulang halaman.</p>
 </noscript>
 
-<main id="main" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+<main id="main" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
 
   <!-- Transkrip -->
-  <section id="transkrip" aria-labelledby="h-transkrip" class="mt-10 scroll-mt-4">
+  <section id="transkrip" aria-labelledby="h-transkrip" class="mt-12 sm:mt-16 scroll-mt-4">
     <div class="sec-head">
-      <h2 id="h-transkrip" class="sticker">Transkrip</h2>
-      <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan transkrip" aria-describedby="tip-transkrip">?</button><span role="tooltip" id="tip-transkrip" class="tip">PDF, XLSX, XLS, atau CSV. Tiap baris: nama, SKS 1-6, nilai A sampai E. Kolom semester (Gasal/Genap) ikut dibaca untuk menentukan Ganjil/Genap. Berkas tidak dikirim ke server.</span></span>
+      <h2 id="h-transkrip" class="sec-title">Transkrip</h2>
+      <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan transkrip" aria-describedby="tip-transkrip">?</button><span role="tooltip" id="tip-transkrip" class="tip">PDF, XLSX, XLS, atau CSV. Tiap baris: nama, SKS 1-6, nilai A sampai E. Kolom semester (Gasal/Genap) ikut dibaca untuk menentukan Ganjil/Genap. File tidak dikirim ke server.</span></span>
     </div>
+    <p class="mt-1 sec-lead">Mulai dari sini. Nilai, SKS, dan semestermu dibaca otomatis.</p>
 
-    <div class="mt-5 grid gap-5 lg:grid-cols-5">
-      <div class="lg:col-span-3 min-w-0">
-        <div id="dropzone" class="dropzone">
-          <p class="font-display text-xl font-bold">Tarik berkas transkrip ke sini</p>
-          <p class="mt-1 sec-lead">PDF, Excel, atau CSV dari portal akademik.</p>
-          <div class="mt-4 flex flex-wrap gap-3">
-            <button id="pick-btn" type="button" class="btn btn-primary">Pilih berkas transkrip</button>
-            <button id="demo-btn" type="button" class="btn btn-yellow">Muat data contoh</button>
+    <div class="mt-5 grid gap-4 lg:grid-cols-12">
+      <div class="lg:col-span-7 min-w-0 flex flex-col gap-4">
+        <div id="dropzone" class="dropzone flex-1 flex flex-col justify-center sm:min-h-[14rem]">
+          <p class="text-lg sm:text-xl font-semibold tracking-tight">Tarik file transkrip ke sini</p>
+          <p class="mt-1 text-sm sec-lead">PDF, Excel, atau CSV dari portal akademik kampusmu.</p>
+          <div class="mt-5 flex flex-wrap gap-3">
+            <button id="pick-btn" type="button" class="btn btn-primary">Pilih file transkrip</button>
+            <button id="demo-btn" type="button" class="btn btn-soft">Coba data contoh</button>
           </div>
           <input id="file-input" type="file" accept=".pdf,.xlsx,.xls,.csv,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="sr-only" tabindex="-1" aria-hidden="true">
         </div>
-        <div id="upload-status" class="mt-4" role="status" aria-live="polite"></div>
-        <p id="demo-note" class="mt-4 notice" hidden><span class="font-bold">Data contoh sedang tampil.</span> Bukan transkrip siapa pun; unggah transkrip Anda untuk menggantinya.</p>
+        <div id="upload-status" role="status" aria-live="polite"></div>
+        <p id="demo-note" class="notice" hidden><span class="font-semibold">Data contoh sedang tampil.</span> Bukan transkrip siapa pun; unggah transkripmu untuk menggantinya.</p>
       </div>
-      <aside id="summary" class="lg:col-span-2 min-w-0" aria-live="polite" aria-label="Ringkasan transkrip"></aside>
+      <aside id="summary" class="lg:col-span-5 min-w-0" aria-live="polite" aria-label="Ringkasan transkrip"></aside>
     </div>
 
-    <details id="tx-fold" class="fold card card-pad mt-6">
-      <summary><span><span class="font-display text-lg">Isi transkrip</span> <span id="tx-count" class="pill ml-1">0</span></span></summary>
+    <details id="tx-fold" class="fold card card-pad mt-4">
+      <summary><span><span class="text-base">Isi transkrip</span> <span id="tx-count" class="pill ml-1">0</span></span></summary>
       <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p class="sec-lead">Ubah SKS, nilai, atau semester penawaran langsung di tabel.</p>
+        <p class="text-sm sec-lead">Ubah SKS, nilai, atau semester penawaran langsung di tabel.</p>
         <button id="clear-btn" type="button" class="btn btn-quiet" hidden>Kosongkan semua data</button>
       </div>
       <div class="mt-3">
@@ -288,7 +317,7 @@ tailwind.config = {
         <button id="rows-toggle" type="button" class="btn btn-quiet mt-2" hidden></button>
       </div>
       <form id="add-form" class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-start" novalidate>
-        <p class="font-bold sm:col-span-2 lg:col-span-5">Tambah mata kuliah manual</p>
+        <p class="font-semibold sm:col-span-2 lg:col-span-5">Tambah mata kuliah manual</p>
         <div class="min-w-0 sm:col-span-2 lg:col-span-1">
           <label class="field-label" for="add-name">Nama mata kuliah</label>
           <input id="add-name" class="field" type="text" autocomplete="off" placeholder="Nama mata kuliah" aria-describedby="add-name-err">
@@ -310,72 +339,64 @@ tailwind.config = {
         <div class="lg:pt-[1.875rem]">
           <button type="submit" class="btn btn-primary w-full lg:w-auto">Tambah ke tabel</button>
         </div>
-        <p id="add-msg" class="sm:col-span-2 lg:col-span-5 sec-lead" role="status" aria-live="polite"></p>
+        <p id="add-msg" class="sm:col-span-2 lg:col-span-5 text-sm sec-lead" role="status" aria-live="polite"></p>
       </form>
     </details>
   </section>
 
   <!-- Posisi & target -->
-  <section id="target" aria-labelledby="h-target" class="mt-12 scroll-mt-4">
+  <section id="target" aria-labelledby="h-target" class="mt-14 sm:mt-16 scroll-mt-4">
     <div class="sec-head">
-      <h2 id="h-target" class="sticker is-yellow">Posisi &amp; target</h2>
+      <h2 id="h-target" class="sec-title">Posisi &amp; target</h2>
       <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan posisi dan target" aria-describedby="tip-target">?</button><span role="tooltip" id="tip-target" class="tip">Semester depan otomatis dihitung dari semester terakhir di transkrip. Ubah bila ada semester cuti. Semester yang sedang berjalan tidak diubah simulasi.</span></span>
     </div>
-    <p class="mt-3 sec-lead">Geser slider, hasil di bawah langsung ikut berubah.</p>
+    <p class="mt-1 sec-lead">Geser slider, semua hasil di bawah ikut berubah.</p>
 
-    <div class="mt-5 grid gap-5 md:grid-cols-2">
-      <div class="card card-pad">
-        <div class="flex items-end justify-between gap-3">
-          <label class="field-label mb-0" for="p-target">Target IPK akhir</label>
-          <input id="p-target" class="field mono text-lg font-bold" style="width: 6.5rem;" type="number" inputmode="decimal" min="0" max="4" step="0.01" value="3.50" aria-describedby="p-target-err">
+    <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-12">
+      <div class="card card-pad sm:col-span-2 lg:col-span-7">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <label class="field-label mb-0" for="p-target">Target IPK akhir</label>
+            <p class="text-sm sec-lead">IPK yang ingin kamu bawa saat wisuda.</p>
+          </div>
+          <input id="p-target" class="field num-input" type="number" inputmode="decimal" min="0" max="4" step="0.01" value="3.50" aria-describedby="p-target-err">
         </div>
-        <input id="p-target-range" class="slider mt-2" type="range" min="2" max="4" step="0.05" value="3.5" aria-label="Geser target IPK akhir">
-        <div class="flex justify-between mono text-xs font-bold" aria-hidden="true"><span>2.00</span><span>3.00</span><span>4.00</span></div>
+        <input id="p-target-range" class="slider mt-3" type="range" min="2" max="4" step="0.05" value="3.5" aria-label="Geser target IPK akhir">
+        <div class="scale" aria-hidden="true"><span>2.00</span><span>3.00</span><span>4.00</span></div>
         <p id="p-target-err" class="field-error" hidden></p>
       </div>
-      <div class="card card-pad">
-        <div class="flex items-end justify-between gap-3">
-          <label class="field-label mb-0" for="p-max">Batas SKS per semester</label>
-          <input id="p-max" class="field mono text-lg font-bold" style="width: 6.5rem;" type="number" inputmode="numeric" min="6" max="30" step="1" value="24" aria-describedby="p-max-err">
+      <div class="card card-pad sm:col-span-2 lg:col-span-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <label class="field-label mb-0" for="p-max">Batas SKS per semester</label>
+            <p class="text-sm sec-lead">Beban maksimal yang mau kamu ambil.</p>
+          </div>
+          <input id="p-max" class="field num-input" type="number" inputmode="numeric" min="6" max="30" step="1" value="24" aria-describedby="p-max-err">
         </div>
-        <input id="p-max-range" class="slider mt-2" type="range" min="12" max="30" step="1" value="24" aria-label="Geser batas SKS per semester">
-        <div class="flex justify-between mono text-xs font-bold" aria-hidden="true"><span>12</span><span>21</span><span>30</span></div>
+        <input id="p-max-range" class="slider mt-3" type="range" min="12" max="30" step="1" value="24" aria-label="Geser batas SKS per semester">
+        <div class="scale" aria-hidden="true"><span>12</span><span>21</span><span>30</span></div>
         <p id="p-max-err" class="field-error" hidden></p>
         <p id="p-max-hint" class="field-hint" aria-live="polite" hidden></p>
       </div>
-    </div>
 
-    <div class="mt-5 card card-pad flex flex-wrap items-center gap-x-3 gap-y-1">
-      <label class="check-row" for="p-its">
-        <span class="switch"><input id="p-its" type="checkbox" role="switch" aria-describedby="p-its-hint"><span class="track" aria-hidden="true"><span class="thumb"></span></span></span>
-        <span class="pt-2 font-bold">Pakai aturan akademik ITS</span>
-      </label>
-      <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Isi aturan akademik ITS" aria-describedby="tip-its">?</button><span role="tooltip" id="tip-its" class="tip">Peraturan Rektor ITS No. 33 Tahun 2025. Nilai yang diakui setelah mengulang adalah nilai terakhir (Pasal 64). Lulus S1 butuh semua nilai minimal C, jadi D dan E wajib diulang (Pasal 69). Mata kuliah semester 1-2 tidak boleh diulang setelah lulus tahap persiapan (Pasal 70). Batas SKS mengikuti IPS semester sebelumnya (Pasal 51).</span></span>
-      <p id="p-its-hint" class="w-full text-sm sec-lead">BC ikut bisa diulang, D/E wajib diulang, mata kuliah semester 1-2 terkunci mulai semester 5.</p>
-    </div>
-
-    <div class="mt-5 card card-pad grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-      <div>
+      <div class="card card-pad lg:col-span-4">
         <label class="field-label" for="p-cur">Semester saat ini</label>
-        <input id="p-cur" class="field mono text-lg" type="number" inputmode="numeric" min="1" max="14" step="1" aria-describedby="p-cur-hint p-cur-err">
+        <input id="p-cur" class="field text-lg font-semibold" type="number" inputmode="numeric" min="1" max="14" step="1" aria-describedby="p-cur-hint p-cur-err">
         <p id="p-cur-hint" class="field-hint"></p>
         <p id="p-cur-err" class="field-error" hidden></p>
-      </div>
-      <div>
-        <p class="field-label">Sedang berjalan?</p>
-        <label class="check-row" for="p-inprog">
+        <label class="check-row mt-3" for="p-inprog">
           <span class="switch"><input id="p-inprog" type="checkbox" role="switch" checked aria-describedby="p-inprog-hint"><span class="track" aria-hidden="true"><span class="thumb"></span></span></span>
-          <span class="pt-2 font-semibold">KRS terkunci, nilai belum keluar</span>
+          <span class="pt-2.5 text-sm font-semibold">Sedang berjalan, KRS terkunci</span>
         </label>
-        <p id="p-inprog-hint" class="field-hint">Matikan bila semester ini sudah selesai.</p>
+        <p id="p-inprog-hint" class="field-hint mt-0">Matikan bila semester ini sudah selesai.</p>
         <div id="p-current-wrap" class="mt-3">
           <label class="field-label" for="p-current">SKS yang sedang diambil</label>
-          <input id="p-current" class="field mono text-lg" type="number" inputmode="numeric" min="0" max="30" step="1" aria-describedby="p-current-hint p-current-err">
+          <input id="p-current" class="field" type="number" inputmode="numeric" min="0" max="30" step="1" aria-describedby="p-current-hint p-current-err">
           <p id="p-current-hint" class="field-hint">Keluarkan mata kuliah ini dari antrean.</p>
           <p id="p-current-err" class="field-error" hidden></p>
         </div>
       </div>
-      <div>
+      <div class="card card-pad lg:col-span-4">
         <label class="field-label" for="p-next">Semester depan</label>
         <select id="p-next" class="field" aria-describedby="p-next-hint">
           <option value="auto">Otomatis</option>
@@ -384,38 +405,47 @@ tailwind.config = {
         </select>
         <p id="p-next-hint" class="field-hint" aria-live="polite"></p>
       </div>
-      <div class="grid gap-5">
+      <div class="card card-pad sm:col-span-2 lg:col-span-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 content-start">
         <div>
           <label class="field-label" for="p-total">Total SKS lulus</label>
-          <input id="p-total" class="field mono text-lg" type="number" inputmode="numeric" min="1" max="300" step="1" value="144" aria-describedby="p-total-err">
+          <input id="p-total" class="field" type="number" inputmode="numeric" min="1" max="300" step="1" value="144" aria-describedby="p-total-err">
           <p id="p-total-err" class="field-error" hidden></p>
         </div>
         <div>
-          <label class="field-label" for="p-normal">Masa studi normal</label>
-          <input id="p-normal" class="field mono text-lg" type="number" inputmode="numeric" min="1" max="14" step="1" value="8" aria-describedby="p-normal-err">
+          <label class="field-label" for="p-normal">Masa studi normal (semester)</label>
+          <input id="p-normal" class="field" type="number" inputmode="numeric" min="1" max="14" step="1" value="8" aria-describedby="p-normal-err">
           <p id="p-normal-err" class="field-error" hidden></p>
         </div>
+      </div>
+
+      <div class="card card-pad sm:col-span-2 lg:col-span-12 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <label class="check-row" for="p-its">
+          <span class="switch"><input id="p-its" type="checkbox" role="switch" aria-describedby="p-its-hint"><span class="track" aria-hidden="true"><span class="thumb"></span></span></span>
+          <span class="pt-2.5 font-semibold">Pakai aturan akademik ITS</span>
+        </label>
+        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Isi aturan akademik ITS" aria-describedby="tip-its">?</button><span role="tooltip" id="tip-its" class="tip">Peraturan Rektor ITS No. 33 Tahun 2025. Nilai yang diakui setelah mengulang adalah nilai terakhir (Pasal 64). Lulus S1 butuh semua nilai minimal C, jadi D dan E wajib diulang (Pasal 69). Mata kuliah semester 1-2 tidak boleh diulang setelah lulus tahap persiapan (Pasal 70). Batas SKS mengikuti IPS semester sebelumnya (Pasal 51).</span></span>
+        <p id="p-its-hint" class="w-full text-sm sec-lead">BC ikut bisa diulang, D/E wajib diulang, mata kuliah semester 1-2 terkunci mulai semester 5.</p>
       </div>
     </div>
   </section>
 
   <!-- Antrean -->
-  <section id="antrean" aria-labelledby="h-antrean" class="mt-12 scroll-mt-4">
+  <section id="antrean" aria-labelledby="h-antrean" class="mt-14 sm:mt-16 scroll-mt-4">
     <div class="sec-head">
-      <h2 id="h-antrean" class="sticker">Antrean mata kuliah</h2>
+      <h2 id="h-antrean" class="sec-title">Antrean mata kuliah</h2>
       <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan antrean" aria-describedby="tip-antrean">?</button><span role="tooltip" id="tip-antrean" class="tip">Tiap mata kuliah punya semester penawaran: Ganjil, Genap, atau Keduanya. Yang Ganjil hanya masuk semester ganjil, begitu juga Genap.</span></span>
     </div>
-    <p class="mt-3 sec-lead">Tiga sumber yang dijadwalkan simulasi KRS.</p>
+    <p class="mt-1 sec-lead">Tiga sumber mata kuliah yang dijadwalkan simulasi KRS.</p>
 
-    <div class="mt-5 tabs" role="tablist" aria-label="Kategori antrean">
-      <button id="tab-a" class="tab" type="button" role="tab" aria-selected="false" aria-controls="panel-a" tabindex="-1"><span class="badge badge-tunda">A</span> Tertunda <span id="count-a" class="pill">0</span></button>
-      <button id="tab-b" class="tab" type="button" role="tab" aria-selected="true" aria-controls="panel-b"><span class="badge badge-ulang">B</span> Mengulang <span id="count-b" class="pill">0</span></button>
-      <button id="tab-c" class="tab" type="button" role="tab" aria-selected="false" aria-controls="panel-c" tabindex="-1"><span class="badge badge-baru">K</span> Kurikulum <span id="count-c" class="pill">0</span></button>
+    <div class="mt-5 seg" role="tablist" aria-label="Kategori antrean">
+      <button id="tab-a" class="seg-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-a" tabindex="-1"><span>Tertunda</span> <span id="count-a" class="seg-count">0</span></button>
+      <button id="tab-b" class="seg-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-b"><span>Mengulang</span> <span id="count-b" class="seg-count">0</span></button>
+      <button id="tab-c" class="seg-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-c" tabindex="-1"><span>Kurikulum</span> <span id="count-c" class="seg-count">0</span></button>
     </div>
 
     <div id="panel-a" class="card card-pad mt-4" role="tabpanel" aria-labelledby="tab-a" tabindex="0" hidden>
       <div class="flex flex-wrap items-center gap-2">
-        <h3 class="font-display text-xl font-bold">Mata kuliah tertunda</h3>
+        <h3 class="text-lg font-semibold">Mata kuliah tertunda</h3>
         <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan mata kuliah tertunda" aria-describedby="tip-a">?</button><span role="tooltip" id="tip-a" class="tip">Yang belum diambil atau terlewat karena batas SKS. Prasyarat dan wajib diisi paling awal di semester yang membukanya.</span></span>
       </div>
       <div class="mt-3">
@@ -454,7 +484,7 @@ tailwind.config = {
         <div class="lg:pt-[1.875rem]">
           <button type="submit" class="btn btn-primary w-full lg:w-auto">Tambah ke antrean</button>
         </div>
-        <p id="a-msg" class="sm:col-span-2 lg:col-span-5 sec-lead" role="status" aria-live="polite"></p>
+        <p id="a-msg" class="sm:col-span-2 lg:col-span-5 text-sm sec-lead" role="status" aria-live="polite"></p>
       </form>
       <details class="fold mt-2">
         <summary>Tempel banyak sekaligus</summary>
@@ -466,11 +496,11 @@ tailwind.config = {
 
     <div id="panel-b" class="card card-pad mt-4" role="tabpanel" aria-labelledby="tab-b" tabindex="0">
       <div class="flex flex-wrap items-center gap-2">
-        <h3 class="font-display text-xl font-bold">Mata kuliah mengulang</h3>
-        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan mata kuliah mengulang" aria-describedby="tip-b">?</button><span role="tooltip" id="tip-b" class="tip">Nyalakan sakelar untuk mengulang. Nilai lama diganti; SKS-nya tidak menambah SKS lulus tapi memakai kuota semester. Badge mint = kenaikan IPK akhir bila mencapai target (atau A).</span></span>
+        <h3 class="text-lg font-semibold">Mata kuliah mengulang</h3>
+        <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan mata kuliah mengulang" aria-describedby="tip-b">?</button><span role="tooltip" id="tip-b" class="tip">Nyalakan sakelar untuk mengulang. Nilai lama diganti; SKS-nya tidak menambah SKS lulus tapi memakai kuota semester. Angka hijau = kenaikan IPK akhir bila mencapai target (atau A).</span></span>
       </div>
       <p id="picker-hint" class="mt-1 text-sm sec-lead"></p>
-      <div id="picker" class="mt-3"></div>
+      <div id="picker" class="mt-2"></div>
       <div id="picker-actions" class="mt-4 flex flex-wrap gap-3">
         <button id="pick-rec" type="button" class="btn">Pakai rekomendasi</button>
         <button id="pick-none" type="button" class="btn btn-quiet">Matikan semua</button>
@@ -479,7 +509,7 @@ tailwind.config = {
 
     <div id="panel-c" class="card card-pad mt-4" role="tabpanel" aria-labelledby="tab-c" tabindex="0" hidden>
       <div class="flex flex-wrap items-center gap-2">
-        <h3 class="font-display text-xl font-bold">Sisa mata kuliah kurikulum</h3>
+        <h3 class="text-lg font-semibold">Sisa mata kuliah kurikulum</h3>
         <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Format daftar kurikulum" aria-describedby="tip-c">?</button><span role="tooltip" id="tip-c" class="tip">Format baris: nama, SKS, wajib/pilihan, ganjil/genap/keduanya, smt N. Jatah pilihan boleh satu baris berisi total SKS. Baris # diabaikan. Tugas Akhir dijadwalkan paling akhir.</span></span>
       </div>
       <div class="mt-3 grid gap-5 lg:grid-cols-5">
@@ -487,8 +517,8 @@ tailwind.config = {
           <label class="field-label" for="remaining">Daftar sisa mata kuliah</label>
           <textarea id="remaining" class="field" rows="10" spellcheck="false" placeholder="Nama mata kuliah, SKS, wajib, genap, smt 6"></textarea>
           <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <button id="preset-its" type="button" class="btn btn-yellow">Isi dari kurikulum S1 Matematika ITS 2023</button>
-            <a class="text-sm font-semibold underline underline-offset-2" href="https://www.its.ac.id/matematika/akademik/program-studi/sarjana/" target="_blank" rel="noopener">Sumber kurikulum</a>
+            <button id="preset-its" type="button" class="btn btn-soft">Isi dari kurikulum S1 Matematika ITS 2023</button>
+            <a class="text-sm font-medium underline underline-offset-2" href="https://www.its.ac.id/matematika/akademik/program-studi/sarjana/" target="_blank" rel="noopener">Sumber kurikulum</a>
           </div>
         </div>
         <div id="remaining-info" class="lg:col-span-2 min-w-0 notice self-start" aria-live="polite"></div>
@@ -497,38 +527,38 @@ tailwind.config = {
   </section>
 
   <!-- Hasil -->
-  <div id="results-empty" class="mt-12 card card-pad">
-    <p class="font-display text-xl font-bold">Hasil simulasi muncul di sini</p>
-    <p id="results-empty-text" class="mt-2 sec-lead">Unggah transkrip atau muat data contoh dulu.</p>
+  <div id="results-empty" class="mt-14 sm:mt-16 card card-pad">
+    <p class="text-lg font-semibold">Hasil simulasi muncul di sini</p>
+    <p id="results-empty-text" class="mt-1 sec-lead">Unggah transkrip atau coba data contoh dulu.</p>
   </div>
 
   <div id="results" hidden>
-    <section id="perbandingan" aria-labelledby="h-perbandingan" class="mt-12 scroll-mt-4">
+    <section id="perbandingan" aria-labelledby="h-perbandingan" class="mt-16 sm:mt-20 scroll-mt-4">
       <div class="sec-head">
-        <h2 id="h-perbandingan" class="sticker is-yellow">Perbandingan jalur</h2>
+        <h2 id="h-perbandingan" class="sec-title">Perbandingan jalur</h2>
         <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan IPS dibutuhkan" aria-describedby="tip-ips">?</button><span role="tooltip" id="tip-ips" class="tip">IPS dibutuhkan = rata-rata bobot untuk semua SKS mulai semester berjalan, termasuk mata kuliah ulang bertarget "Ikut IPS". Di atas 3.75 dianggap tidak realistis. Nilai E dihitung di IPK tapi bukan SKS lulus.</span></span>
       </div>
-      <p id="verdict" class="mt-5 font-display text-xl sm:text-2xl font-bold leading-snug max-w-4xl"></p>
-      <div class="mt-6 grid gap-5 lg:grid-cols-5">
-        <div id="compare" class="lg:col-span-3 grid gap-5 md:grid-cols-2 content-start min-w-0"></div>
-        <div id="sem-block" class="lg:col-span-2 min-w-0"></div>
+      <p id="verdict" class="verdict mt-4"></p>
+      <div class="mt-6 grid gap-4 lg:grid-cols-12">
+        <div id="compare" class="lg:col-span-8 grid gap-4 md:grid-cols-2 content-start min-w-0"></div>
+        <div id="sem-block" class="lg:col-span-4 min-w-0"></div>
       </div>
     </section>
 
-    <section id="rekomendasi" aria-labelledby="h-rekomendasi" class="mt-12 scroll-mt-4">
+    <section id="rekomendasi" aria-labelledby="h-rekomendasi" class="mt-14 sm:mt-16 scroll-mt-4">
       <div class="sec-head">
-        <h2 id="h-rekomendasi" class="sticker">Rekomendasi strategi</h2>
+        <h2 id="h-rekomendasi" class="sec-title">Rekomendasi strategi</h2>
         <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Penjelasan kategori target" aria-describedby="tip-rek">?</button><span role="tooltip" id="tip-rek" class="tip">Kategori dari IPS dibutuhkan: di bawah 3.20 ringan, 3.20-3.49 realistis, 3.50-3.85 menantang, 3.86-4.00 sangat berat, di atas 4.00 tidak mungkin tanpa mengulang.</span></span>
       </div>
-      <div class="mt-5 grid gap-5 lg:grid-cols-2">
-        <div class="card card-pad min-w-0">
+      <div class="mt-5 grid gap-4 lg:grid-cols-12">
+        <div class="card card-pad lg:col-span-7 min-w-0">
           <div id="advice"></div>
           <div id="bottleneck" class="mt-6"></div>
         </div>
-        <div class="grid gap-5 content-start min-w-0">
+        <div class="lg:col-span-5 grid gap-4 content-start min-w-0">
           <div id="krs" class="card card-pad"></div>
           <div class="card card-pad">
-            <h3 class="font-display text-xl font-bold">Urutan mengulang dengan dampak terbesar</h3>
+            <h3 class="text-lg font-semibold">Urutan mengulang dengan dampak terbesar</h3>
             <p id="prio-hint" class="mt-1 text-sm sec-lead"></p>
             <ol id="prio" class="prio mt-3"></ol>
           </div>
@@ -536,45 +566,47 @@ tailwind.config = {
       </div>
     </section>
 
-    <section id="timeline" aria-labelledby="h-timeline" class="mt-12 scroll-mt-4">
+    <section id="timeline" aria-labelledby="h-timeline" class="mt-14 sm:mt-16 scroll-mt-4">
       <div class="sec-head">
-        <h2 id="h-timeline" class="sticker is-yellow">Timeline studi</h2>
+        <h2 id="h-timeline" class="sec-title">Timeline studi</h2>
         <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Aturan penjadwalan" aria-describedby="tip-tl">?</button><span role="tooltip" id="tip-tl" class="tip">Ganjil dan Genap bergantian mulai semester depan. Urutan isi kuota: tertunda, wajib kurikulum, mengulang (dampak terbesar), Tugas Akhir, lalu pilihan. Yang tidak muat digeser ke semester sejenis berikutnya.</span></span>
       </div>
-      <p id="tl-lead" class="mt-3 font-semibold max-w-3xl"></p>
-      <div class="mt-3 flex flex-wrap items-center gap-2 text-sm font-semibold" aria-label="Keterangan tanda">
+      <p id="tl-lead" class="mt-1 sec-lead max-w-3xl"></p>
+      <div class="mt-3 flex flex-wrap items-center gap-2" aria-label="Keterangan tanda">
+        <span class="par par-ganjil">Ganjil</span>
+        <span class="par par-genap">Genap</span>
         <span class="badge badge-baru">Baru</span>
         <span class="badge badge-tunda">Tertunda</span>
         <span class="badge badge-ulang">Mengulang</span>
         <span class="flag">Digeser karena batas SKS</span>
         <span class="flag flag-wait">Menunggu 1 tahun</span>
       </div>
-      <ol id="tl-cards" class="timeline mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3"></ol>
+      <ol id="tl-cards" class="timeline mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></ol>
     </section>
 
-    <section id="proyeksi" aria-labelledby="h-proyeksi" class="mt-12 scroll-mt-4">
+    <section id="proyeksi" aria-labelledby="h-proyeksi" class="mt-14 sm:mt-16 scroll-mt-4">
       <div class="sec-head">
-        <h2 id="h-proyeksi" class="sticker">Proyeksi IPK</h2>
+        <h2 id="h-proyeksi" class="sec-title">Proyeksi IPK</h2>
       </div>
-      <div class="mt-5 grid gap-5 lg:grid-cols-3">
-        <div class="card card-pad lg:col-span-1 min-w-0">
+      <div class="mt-5 grid gap-4 lg:grid-cols-12">
+        <div class="card card-pad lg:col-span-4 min-w-0">
           <div class="flex items-center justify-between gap-3">
             <label for="ips-range" class="field-label mb-0">IPS tiap semester</label>
-            <output id="ips-out" for="ips-range" class="pill pill-sky text-base">-</output>
+            <output id="ips-out" for="ips-range" class="pill pill-sky text-sm justify-center" style="min-width: 3.75rem;">-</output>
           </div>
           <input id="ips-range" class="slider mt-2" type="range" min="2" max="4" step="0.05" value="3.5" aria-describedby="ips-hint">
           <p id="ips-hint" class="field-hint">Mata kuliah ulang tanpa target dianggap mendapat nilai setara IPS ini.</p>
           <button id="ips-auto" type="button" class="btn btn-quiet mt-1 -ml-2">Kembali ke IPS yang dibutuhkan</button>
-          <p id="chart-caption" class="mt-3 font-semibold"></p>
+          <p id="chart-caption" class="mt-3 text-sm font-medium"></p>
         </div>
-        <div class="card card-pad lg:col-span-2 min-w-0">
-          <h3 id="chart-title" class="font-display text-lg font-bold"></h3>
+        <div class="card card-pad lg:col-span-8 min-w-0">
+          <h3 id="chart-title" class="text-base sm:text-lg font-semibold"></h3>
           <div class="relative mt-3 h-72 sm:h-80">
             <canvas id="ipk-chart" role="img" aria-label="Grafik proyeksi IPK"></canvas>
           </div>
-          <p id="chart-fallback" class="notice is-error mt-3" hidden><span class="font-bold">Grafik tidak bisa digambar.</span> Chart.js gagal dimuat; angkanya tetap ada di tabel di bawah.</p>
+          <p id="chart-fallback" class="notice is-error mt-3" hidden><span class="font-semibold">Grafik tidak bisa digambar.</span> Chart.js gagal dimuat; angkanya tetap ada di tabel di bawah.</p>
           <details class="fold mt-3">
-            <summary>Angka grafik dalam tabel</summary>
+            <summary class="text-sm">Angka grafik dalam tabel</summary>
             <div id="chart-table" class="mt-2 overflow-x-auto"></div>
           </details>
         </div>
@@ -601,7 +633,7 @@ tailwind.config = {
   var MAX_SIM_SEMESTERS = 24;
   var STORE_KEY = 'rencana-ipk-v1';
   var TA_PATTERN = /tugas akhir|skripsi|thesis|tesis/i;
-  var COLORS = { ink: '#0F172A', ink2: '#334155', cobalt: '#2563EB', coral: '#FB7185', grid: '#C7D2FE' };
+  var COLORS = { ink: '#0F172A', ink2: '#475569', cobalt: '#2563EB', rose: '#F43F5E', grid: '#E2E8F0' };
   var DEFAULT_PARAMS = { targetSks: 144, maxSks: 24, targetIpk: 3.5, normalSem: 8, currentSem: null, inProgress: true, currentSks: null, nextParity: 'auto', itsRules: false };
 
   // Data contoh: 39 mata kuliah dari 6 semester (jumlah per semester di DEMO_TERM_SIZES).
@@ -802,8 +834,8 @@ tailwind.config = {
       '# Kurikulum 2023 S1 Matematika ITS (its.ac.id/matematika), disalin 14 November 2026.',
       '# Mata kuliah yang sudah lulus di transkrip tidak dimasukkan.',
       running
-        ? '# Mata kuliah semester ' + running + ' (sedang berjalan) tidak dimasukkan. Yang tidak Anda ambil semester ini, tambahkan ke Kategori A.'
-        : '# Hapus baris mata kuliah yang sedang Anda ambil semester ini.',
+        ? '# Mata kuliah semester ' + running + ' (sedang berjalan) tidak dimasukkan. Yang tidak kamu ambil semester ini, tambahkan ke tab Tertunda.'
+        : '# Hapus baris mata kuliah yang sedang kamu ambil semester ini.',
       '# Mata kuliah umum ditandai keduanya (dianggap dibuka tiap semester); ganti ke ganjil atau genap bila tidak.'
     ];
     ITS_MATH_2023.forEach(function (c) {
@@ -1437,7 +1469,7 @@ tailwind.config = {
       else result = await readWorkbook(file);
 
       if (!result.records.length) {
-        setStatus('error', 'Tidak ada mata kuliah yang terbaca dari ' + file.name + '. Pastikan tiap baris memuat nama mata kuliah, SKS (1-6), dan nilai huruf. Anda juga bisa mengisi tabel secara manual.', skippedDetails(result.skipped));
+        setStatus('error', 'Tidak ada mata kuliah yang terbaca dari ' + file.name + '. Pastikan tiap baris memuat nama mata kuliah, SKS (1-6), dan nilai huruf. Kamu juga bisa mengisi tabel secara manual.', skippedDetails(result.skipped));
         return;
       }
       state.courses = result.records.map(function (r) {
@@ -1484,31 +1516,35 @@ tailwind.config = {
   }
 
   // Render: ringkasan & tabel transkrip
-  function statTile(label, value, extra, bg) {
-    return '<div class="card" style="padding: .625rem .75rem; box-shadow: 2px 2px 0 var(--ink);' + (bg ? ' background: ' + bg + ';' : '') + '">' +
-      '<p class="text-xs font-bold">' + label + '</p><p class="font-display text-2xl font-bold">' + value + '</p>' + (extra || '') + '</div>';
+  function statTile(label, value, extra, rose) {
+    return '<div class="card min-w-0" style="padding: .875rem 1rem;' + (rose ? ' background: #FFF1F2; border-color: #FECDD3;' : '') + '">' +
+      '<p class="text-xs font-medium sec-lead">' + label + '</p>' +
+      '<p class="big-num text-2xl mt-1"' + (rose ? ' style="color: var(--rose-tx);"' : '') + '>' + value + '</p>' + (extra || '') + '</div>';
   }
 
+  // Bento ringkasan: IPK jadi kartu terbesar karena itu angka yang dicari pertama; empat angka pendukung di bawahnya.
   function renderSummary(a) {
     var el = $('#summary');
     if (!a.sum.count) {
-      el.innerHTML = '<div class="card card-pad h-full" style="background: var(--sky);"><p class="font-display text-xl font-bold">Belum ada transkrip</p>' +
-        '<p class="mt-2 font-medium">IPK, total SKS, dan mata kuliah yang bisa diulang muncul di sini.</p></div>';
+      el.innerHTML = '<div class="card card-pad h-full flex flex-col justify-center lg:min-h-[14rem]"><p class="text-lg font-semibold">Belum ada transkrip</p>' +
+        '<p class="mt-1 text-sm sec-lead">IPK, total SKS, dan mata kuliah yang bisa diulang muncul di sini setelah transkrip terbaca.</p></div>';
       return;
     }
     var s = a.sum;
     var eSks = s.K - s.earned;
     var retakeSks = sumBy(a.plist, function (c) { return c.sks; });
-    el.innerHTML = '<div class="card card-pad h-full" style="background: var(--sky);">' +
-      '<p class="font-bold">IPK saat ini</p>' +
-      '<p class="font-display font-bold leading-none mt-1" style="font-size: clamp(3.5rem, 2.5rem + 5vw, 5rem);">' + fmt(s.ipk) + '</p>' +
-      '<div class="mt-5 grid grid-cols-2 gap-3">' +
-        statTile('SKS ditempuh', s.K) +
-        statTile('SKS lulus', s.earned, eSks ? '<p class="text-xs font-semibold">' + eSks + ' SKS nilai E</p>' : '') +
-        statTile('Mata kuliah', s.count) +
-        statTile('Bisa diulang', a.plist.length + ' <span class="mono text-sm">' + retakeSks + ' SKS</span>', '', 'var(--coral)') +
+    var pct = s.ipk === null ? 0 : clamp(s.ipk / 4 * 100, 0, 100);
+    el.innerHTML = '<div class="grid grid-cols-2 gap-4 h-full">' +
+      '<div class="card card-pad col-span-2">' +
+        '<div class="flex items-center justify-between gap-3"><p class="text-sm font-semibold sec-lead">IPK saat ini</p><span class="pill">skala 4.00</span></div>' +
+        '<p class="big-num mt-2" style="font-size: clamp(3.25rem, 2.4rem + 4vw, 4.5rem); color: var(--cobalt);">' + fmt(s.ipk) + '</p>' +
+        '<div class="cap-bar mt-4" aria-hidden="true"><span style="width:' + pct.toFixed(1) + '%; background: var(--cobalt);"></span></div>' +
+        '<p class="mt-4 flex flex-wrap gap-1.5">' + GRADES.filter(function (g) { return s.byGrade[g]; }).map(function (g) { return '<span class="pill">' + g + ' &times; ' + s.byGrade[g] + '</span>'; }).join('') + '</p>' +
       '</div>' +
-      '<p class="mt-4 flex flex-wrap gap-1.5">' + GRADES.filter(function (g) { return s.byGrade[g]; }).map(function (g) { return '<span class="pill">' + g + ' ' + s.byGrade[g] + '</span>'; }).join('') + '</p>' +
+      statTile('SKS ditempuh', s.K) +
+      statTile('SKS lulus', s.earned, eSks ? '<p class="text-xs sec-lead mt-0.5">' + eSks + ' SKS nilai E</p>' : '') +
+      statTile('Mata kuliah', s.count) +
+      statTile('Bisa diulang', a.plist.length + ' <span class="text-sm font-semibold">/ ' + retakeSks + ' SKS</span>', '', true) +
       '</div>';
   }
 
@@ -1701,8 +1737,8 @@ tailwind.config = {
       return;
     }
     opt.textContent = 'Otomatis (' + offerLabel(next.autoPar) + ')';
-    $('#p-next-hint').innerHTML = 'Semester <strong>' + next.no + ' ' + offerLabel(next.parity) + '</strong>' + (next.manual ? ' (diatur manual).' : '.') +
-      ' Saat ini: semester ' + p.currentSem + ' ' + offerLabel(otherParity(next.parity)) + '.';
+    $('#p-next-hint').innerHTML = 'Saat ini semester ' + p.currentSem + ' ' + offerLabel(otherParity(next.parity)) + '. Berikutnya semester <strong>' + next.no + '</strong> ' +
+      '<span class="par par-' + next.parity + '">' + offerLabel(next.parity) + '</span>' + (next.manual ? ' (diatur manual)' : '');
   }
 
   function renderRemainingInfo(a) {
@@ -1725,10 +1761,10 @@ tailwind.config = {
       else if (have > need) cmp = 'Lebih ' + (have - need) + ' SKS dari kebutuhan ' + need + ' SKS; tidak semua pilihan perlu diambil.';
       else cmp = 'Pas dengan kebutuhan ' + need + ' SKS.';
     }
-    el.innerHTML = '<p class="font-display text-2xl font-bold">' + items.length + ' <span class="text-base">baris</span> · ' + total + ' <span class="text-base">SKS</span></p>' +
+    el.innerHTML = '<p class="big-num text-2xl">' + items.length + ' <span class="text-sm font-medium">baris</span> · ' + total + ' <span class="text-sm font-medium">SKS</span></p>' +
       '<p class="mt-1 flex flex-wrap gap-1.5"><span class="pill">' + wajib + ' wajib</span><span class="pill">' + (total - wajib) + ' pilihan</span></p>' +
       (cmp ? '<p class="mt-2 text-sm font-semibold">' + cmp + '</p>' : '') +
-      (parsed.bad.length ? '<p class="mt-2 text-sm font-bold" style="color: var(--coral-ink);">Baris ' + parsed.bad.join(', ') + ' dilewati: SKS atau nama tidak ditemukan.</p>' : '');
+      (parsed.bad.length ? '<p class="mt-2 text-sm font-semibold" style="color: var(--rose-tx);">Baris ' + parsed.bad.join(', ') + ' dilewati: SKS atau nama tidak ditemukan.</p>' : '');
   }
 
   // Render: Kategori B
@@ -1736,7 +1772,7 @@ tailwind.config = {
     if (!a.plist.length) { $('#picker-hint').textContent = ''; return; }
     var text = state.retakeIds === null
       ? 'Menyala sesuai rekomendasi (' + (a.recommended ? a.recommended.length : 0) + ' mata kuliah).'
-      : 'Pilihan Anda sendiri.';
+      : 'Pilihanmu sendiri.';
     var unknown = a.plist.filter(function (c) { return !c.offerKnown; }).length;
     if (unknown) text += ' ' + unknown + ' mata kuliah belum diketahui semester penawarannya.';
     if (a.p.itsRules) text += ' Aturan ITS: nilai terakhir yang diakui, meski lebih rendah.';
@@ -1765,7 +1801,7 @@ tailwind.config = {
           '<label class="switch" for="sw-' + id + '"><input id="sw-' + id + '" type="checkbox" role="switch" value="' + id + '"' + (selectedIds[c.id] || c.forced ? ' checked' : '') + (c.forced ? ' disabled' : '') + ' aria-describedby="pd-' + id + '"><span class="track" aria-hidden="true"><span class="thumb"></span></span></label>' +
           '<span class="stamp">' + c.grade + '</span>' +
           '<span class="min-w-0 flex-1"><label for="sw-' + id + '" class="block font-bold break-words cursor-pointer">' + (i + 1) + '. ' + esc(c.name) + '</label>' +
-          '<span id="pd-' + id + '" class="mt-0.5 flex flex-wrap gap-1.5"><span class="pill">' + c.sks + ' SKS</span><span class="pill" style="background: var(--mint);">+' + fmt(lift, 3) + ' IPK</span>' +
+          '<span id="pd-' + id + '" class="mt-0.5 flex flex-wrap gap-1.5"><span class="pill">' + c.sks + ' SKS</span><span class="pill pill-mint">+' + fmt(lift, 3) + ' IPK</span>' +
           (c.forced ? '<span class="badge badge-ulang">Wajib: syarat lulus minimal C</span>' : '') + '</span></span>' +
         '</div>' +
         '<div class="picker-opts">' +
@@ -1818,7 +1854,7 @@ tailwind.config = {
     var f = sc.finishNo;
     var finCell = f === null
       ? '<span class="chip chip-coral">Ada yang tidak terjadwal</span>'
-      : '<span class="font-display text-3xl font-bold">' + f + '</span> ' + (f > p.normalSem
+      : '<span class="big-num text-3xl">' + f + '</span> ' + (f > p.normalSem
         ? '<span class="chip chip-coral">+' + (f - p.normalSem) + ' semester</span>'
         : '<span class="chip chip-mint">tepat waktu</span>');
     var x = sc.required;
@@ -1830,17 +1866,17 @@ tailwind.config = {
       : x > 4 ? 'Di atas 4.00'
       : CLASS_LABEL[cls];
     return '<article class="card min-w-0 overflow-hidden">' +
-      '<div class="px-5 py-3" style="background: ' + accent + '; border-bottom: 2px solid var(--ink);">' +
-        '<h3 class="font-display text-xl font-bold">' + title + '</h3><p class="text-sm font-semibold">' + sub + '</p></div>' +
+      '<div class="card-head" style="background: ' + accent + ';">' +
+        '<h3 class="text-lg font-semibold">' + title + '</h3><p class="text-sm sec-lead">' + sub + '</p></div>' +
       '<div class="card-pad">' +
-        '<p class="text-sm font-bold">' + bigLabel + '</p>' +
-        '<p class="font-display font-bold leading-none mt-1" style="font-size: 3.25rem;">' + big + '</p>' +
+        '<p class="text-sm font-medium sec-lead">' + bigLabel + '</p>' +
+        '<p class="big-num mt-1" style="font-size: 3rem;">' + big + '</p>' +
         '<p class="mt-3"><span class="chip ' + CLASS_CHIP[cls] + '">' + esc(statusText) + '</span></p>' +
-        '<dl class="mt-4 grid grid-cols-2 gap-3 text-sm">' +
-          '<div><dt class="font-bold">SKS baru</dt><dd class="mono text-lg font-bold">' + sc.newSks + '</dd></div>' +
-          '<div><dt class="font-bold">SKS mengulang</dt><dd class="mono text-lg font-bold">' + sc.retakeSks + '</dd></div>' +
-          '<div class="col-span-2"><dt class="font-bold">Lulus di semester</dt><dd class="mt-1 flex flex-wrap items-center gap-2">' + finCell + '</dd></div>' +
-          '<div class="col-span-2"><dt class="font-bold">IPK akhir bila semua A</dt><dd class="mono text-lg font-bold">' + fmt(sc.maxIpk) + '</dd></div>' +
+        '<dl class="mt-5 grid grid-cols-2 gap-3 text-sm">' +
+          '<div><dt class="sec-lead">SKS baru</dt><dd class="text-lg font-semibold">' + sc.newSks + '</dd></div>' +
+          '<div><dt class="sec-lead">SKS mengulang</dt><dd class="text-lg font-semibold">' + sc.retakeSks + '</dd></div>' +
+          '<div class="col-span-2"><dt class="sec-lead">Lulus di semester</dt><dd class="mt-1 flex flex-wrap items-center gap-2">' + finCell + '</dd></div>' +
+          '<div class="col-span-2"><dt class="sec-lead">IPK akhir bila semua A</dt><dd class="text-lg font-semibold">' + fmt(sc.maxIpk) + '</dd></div>' +
         '</dl>' + (extra || '') +
       '</div></article>';
   }
@@ -1866,8 +1902,8 @@ tailwind.config = {
     $('#compare').innerHTML =
       cardHtml('Jalur normal', 'Tanpa mengulang', base, a.baseClass, a.forced.length
         ? '<p class="mt-4"><span class="chip chip-coral">Belum memenuhi syarat lulus</span></p><p class="mt-2 text-sm font-semibold">Masih ada ' + a.forced.length + ' nilai D/E, padahal aturan ITS mensyaratkan semua nilai minimal C.</p>'
-        : '', a.p, 'var(--peri)') +
-      cardHtml('Jalur perbaikan', a.selected.length ? 'Mengulang ' + a.selected.length + ' mata kuliah' : 'Belum ada yang dinyalakan', rep, a.repairClass, extra, a.p, 'var(--sky)');
+        : '', a.p, 'var(--bg)') +
+      cardHtml('Jalur perbaikan', a.selected.length ? 'Mengulang ' + a.selected.length + ' mata kuliah' : 'Belum ada yang dinyalakan', rep, a.repairClass, extra, a.p, 'var(--blue-bg)');
   }
 
   function renderSemBlock(a) {
@@ -1886,21 +1922,21 @@ tailwind.config = {
     } else {
       lead = 'Ada mata kuliah yang tidak bisa dijadwalkan dengan batas SKS ini.';
     }
-    $('#sem-block').innerHTML = '<div class="card card-pad h-full"><h3 class="font-display text-xl font-bold">Lulus semester berapa?</h3>' +
-      '<p class="mt-2 font-medium">' + lead + '</p>' +
+    $('#sem-block').innerHTML = '<div class="card card-pad h-full"><h3 class="text-lg font-semibold">Lulus semester berapa?</h3>' +
+      '<p class="mt-1 text-sm sec-lead">' + lead + '</p>' +
       '<div class="mt-4 overflow-x-auto"><table class="data-table"><caption class="sr-only">Semester lulus menurut batas SKS</caption>' +
       '<thead><tr><th scope="col">Batas SKS</th><th scope="col">Normal</th>' + (hasRep ? '<th scope="col">Perbaikan</th>' : '') + '</tr></thead><tbody>' +
       a.loads.map(function (r) {
-        return '<tr' + (r.load === p.maxSks ? ' style="background: var(--peri);"' : '') + '><td class="mono font-bold">' + r.load + (r.load === p.maxSks ? ' (Anda)' : '') + '</td>' +
+        return '<tr' + (r.load === p.maxSks ? ' style="background: var(--blue-bg);"' : '') + '><td class="font-semibold">' + r.load + (r.load === p.maxSks ? ' <span class="text-xs font-medium" style="color: var(--blue-tx);">(kamu)</span>' : '') + '</td>' +
           '<td class="mono">' + cell(r.base) + '</td>' + (hasRep ? '<td class="mono">' + cell(r.repair) + '</td>' : '') + '</tr>';
       }).join('') +
       '</tbody></table></div>' +
-      '<p class="mt-2 text-xs font-semibold sec-lead">+1, +2 = semester lewat dari masa studi ' + p.normalSem + '.</p></div>';
+      '<p class="mt-2 text-xs sec-lead">+1, +2 = semester lewat dari masa studi ' + p.normalSem + '.</p></div>';
   }
 
   function courseList(list) {
     return '<ol class="mt-3 space-y-2">' + list.map(function (c, i) {
-      return '<li class="flex flex-wrap items-center gap-2"><span class="pill">' + (i + 1) + '</span><span class="font-bold">' + esc(c.name) + '</span><span class="pill">' + c.sks + ' SKS</span><span class="badge badge-ulang">' + c.grade + '</span><span class="pill">' + offerLabel(c.offer) + '</span></li>';
+      return '<li class="flex flex-wrap items-center gap-2"><span class="pill">' + (i + 1) + '</span><span class="font-semibold">' + esc(c.name) + '</span><span class="pill">' + c.sks + ' SKS</span><span class="badge badge-ulang">' + c.grade + '</span><span class="pill">' + offerLabel(c.offer) + '</span></li>';
     }).join('') + '</ol>';
   }
 
@@ -1916,7 +1952,7 @@ tailwind.config = {
     var title, lead, list = '';
     var semStep = function () {
       if (!recSc || recSc.finishNo === null || !rec.length) return null;
-      return 'Dengan batas ' + a.p.maxSks + ' SKS, mengulang ' + rec.length + ' mata kuliah ini membuat Anda lulus di ' + finishLabel(a.p, recSc.finishNo) + '.';
+      return 'Dengan batas ' + a.p.maxSks + ' SKS, mengulang ' + rec.length + ' mata kuliah ini membuatmu lulus di ' + finishLabel(a.p, recSc.finishNo) + '.';
     };
     var pacing = 'Ambil mata kuliah ulang di semester pertama yang membukanya (Ganjil atau Genap); kalau tergeser, ia menunggu satu tahun penuh.';
 
@@ -1978,7 +2014,7 @@ tailwind.config = {
     }
     var tone = cls === 'mustahil' || cls === 'sangat-berat';
     return '<div class="flex flex-wrap items-center gap-2"><span class="chip ' + CLASS_CHIP[cls] + '">' + CLASS_LABEL[cls] + '</span>' + (tone ? '<span class="chip chip-coral">Perlu tindakan</span>' : '') + '</div>' +
-      '<h3 class="font-display text-2xl font-bold leading-snug mt-3">' + esc(title) + '</h3>' +
+      '<h3 class="font-display text-xl sm:text-2xl leading-snug mt-3">' + esc(title) + '</h3>' +
       '<p class="mt-2 font-medium">' + esc(lead) + '</p>' + list +
       (steps.length ? '<p class="mt-5 font-bold">Langkah ke depan</p><ul class="mt-2 space-y-2 list-disc pl-5">' + steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>' : '');
   }
@@ -2000,7 +2036,7 @@ tailwind.config = {
       parts.push('<p>Simulasi berhenti setelah ' + MAX_SIM_SEMESTERS + ' semester dan masih menyisakan: ' + sim.leftover.map(esc).join(', ') + '.</p>');
     }
     if (overloaded.length) {
-      parts.push('<p><strong>Overload:</strong> semester ' + overloaded.map(function (s) { return s.no + ' (' + s.load + ' SKS)'; }).join(', ') + ' melewati 24 SKS. Pastikan IPS Anda mengizinkan.</p>');
+      parts.push('<p><strong>Overload:</strong> semester ' + overloaded.map(function (s) { return s.no + ' (' + s.load + ' SKS)'; }).join(', ') + ' melewati 24 SKS. Pastikan IPS-mu mengizinkan.</p>');
     }
     if (a.parityDelay > 0) {
       var cutoff = a.free.finishNo;
@@ -2018,11 +2054,11 @@ tailwind.config = {
         }).join('') + '</ul>');
     }
     if (!parts.length) {
-      el.innerHTML = '<div class="notice is-success"><p class="font-bold">Tidak ada bottleneck Ganjil/Genap</p><p class="mt-1 text-sm">Tidak ada mata kuliah yang menunggu satu tahun, dan aturan Ganjil/Genap tidak menambah semester.</p></div>';
+      el.innerHTML = '<div class="notice is-success"><p class="font-semibold" style="color: var(--mint-tx);">Tidak ada bottleneck Ganjil/Genap</p><p class="mt-1 text-sm">Tidak ada mata kuliah yang menunggu satu tahun, dan aturan Ganjil/Genap tidak menambah semester.</p></div>';
       return;
     }
-    el.innerHTML = '<div class="card card-pad" style="background: var(--coral);"><p class="font-display text-lg font-bold">Peringatan bottleneck</p><div class="mt-2 space-y-2 text-sm font-medium">' + parts.join('') +
-      '</div><p class="mt-3 text-sm font-semibold">Cara mengurangi: naikkan batas SKS bila IPS mengizinkan, kurangi mata kuliah ulang, atau ubah semester penawaran.</p></div>';
+    el.innerHTML = '<div class="notice is-error"><p class="font-semibold" style="color: var(--rose-tx);">Peringatan bottleneck</p><div class="mt-2 space-y-2 text-sm">' + parts.join('') +
+      '</div><p class="mt-3 text-sm font-medium">Cara mengurangi: naikkan batas SKS bila IPS mengizinkan, kurangi mata kuliah ulang, atau ubah semester penawaran.</p></div>';
   }
 
   function renderPriority(a) {
@@ -2080,37 +2116,36 @@ tailwind.config = {
     var M = a.p.maxSks;
     var pathName = a.selected.length ? 'jalur perbaikan' : 'jalur normal';
     var s = sc.sim.sems.length && sc.sim.sems[0].no === a.ctx.startNo ? sc.sim.sems[0] : null;
-    var head = '<div class="flex flex-wrap items-center gap-2"><h3 class="font-display text-xl font-bold">Paket KRS semester depan</h3>' +
-      '<span class="chip ' + (a.ctx.startParity === 'ganjil' ? 'chip-cobalt' : 'chip-butter') + '">Smt ' + a.ctx.startNo + ' ' + offerLabel(a.ctx.startParity) + '</span></div>' +
-      '<p class="mt-1 text-sm font-semibold sec-lead">Mengikuti ' + pathName + (a.ctx.locked ? '; semester ' + a.ctx.currentSem + ' (' + sc.lockedSks + ' SKS) tidak diubah' : '') + '.</p>';
+    var head = '<div class="flex flex-wrap items-center gap-2"><h3 class="text-lg font-semibold">Paket KRS semester ' + a.ctx.startNo + '</h3>' +
+      '<span class="par par-' + a.ctx.startParity + '">' + offerLabel(a.ctx.startParity) + '</span></div>' +
+      '<p class="mt-1 text-sm sec-lead">Mengikuti ' + pathName + (a.ctx.locked ? '; semester ' + a.ctx.currentSem + ' (' + sc.lockedSks + ' SKS) tidak diubah' : '') + '.</p>';
     if (!s) {
-      el.innerHTML = head + '<p class="mt-4">' + (sc.sim.sems.length ? 'Tidak ada mata kuliah yang dibuka untuk Anda di semester ini.' : 'Tidak ada SKS yang perlu diambil lagi.') + '</p>';
+      el.innerHTML = head + '<p class="mt-4">' + (sc.sim.sems.length ? 'Tidak ada mata kuliah yang dibuka untukmu di semester ini.' : 'Tidak ada SKS yang perlu diambil lagi.') + '</p>';
       return;
     }
     var retake = sumBy(s.items.filter(function (x) { return x.kind === 'ulang'; }), function (x) { return x.sks; });
     var fresh = s.load - retake;
-    var note = retake >= HEAVY_RETAKE_SKS && s.load > 22 ? '<p class="mt-3 text-sm font-semibold">Ada ' + retake + ' SKS ulang dari total ' + s.load + ' SKS. Bila berat, geser batas SKS ke 20-22 dan lihat dampaknya.</p>' : '';
+    var note = retake >= HEAVY_RETAKE_SKS && s.load > 22 ? '<p class="mt-3 text-sm font-medium">Ada ' + retake + ' SKS ulang dari total ' + s.load + ' SKS. Bila berat, geser batas SKS ke 20-22 dan lihat dampaknya.</p>' : '';
     el.innerHTML = head +
-      '<p class="mt-4"><span class="font-display font-bold" style="font-size: 3rem; line-height: 1;">' + s.load + '</span> <span class="mono font-bold">/ ' + M + ' SKS</span></p>' +
+      '<p class="mt-4"><span class="big-num" style="font-size: 2.75rem;">' + s.load + '</span> <span class="font-semibold sec-lead">/ ' + M + ' SKS</span></p>' +
       '<div class="load-bar mt-3" role="img" aria-label="' + fresh + ' SKS baru atau tertunda dan ' + retake + ' SKS mengulang dari batas ' + M + ' SKS">' +
         '<span class="seg-new" style="width:' + (fresh / M * 100).toFixed(2) + '%"></span>' +
         (retake ? '<span class="seg-retake" style="width:' + (retake / M * 100).toFixed(2) + '%"></span>' : '') +
       '</div>' +
-      '<div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold">' +
-        '<span><span class="swatch" style="background: var(--peri2);" aria-hidden="true"></span>Baru + tertunda ' + fresh + '</span>' +
-        '<span><span class="swatch" style="background: var(--coral);" aria-hidden="true"></span>Mengulang ' + retake + '</span>' +
+      '<div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm sec-lead">' +
+        '<span><span class="swatch" style="background: var(--cobalt);" aria-hidden="true"></span>Baru + tertunda ' + fresh + '</span>' +
+        '<span><span class="swatch" style="background: var(--rose);" aria-hidden="true"></span>Mengulang ' + retake + '</span>' +
       '</div>' + note +
       '<ul class="krs-list mt-4">' + s.items.map(function (it) {
-        return '<li><span class="min-w-0"><span class="badge badge-' + it.kind + '">' + KIND_LABEL[it.kind] + '</span> <span class="font-semibold">' + itemName(it) + '</span>' + itemFlags(it) + '</span><span class="pill shrink-0">' + it.sks + '</span></li>';
+        return '<li><span class="min-w-0"><span class="badge badge-' + it.kind + '">' + KIND_LABEL[it.kind] + '</span> <span class="font-medium">' + itemName(it) + '</span>' + itemFlags(it) + '</span><span class="pill shrink-0">' + it.sks + '</span></li>';
       }).join('') + '</ul>';
   }
 
-  function segBar(load, maxSks) {
-    var cells = Math.max(maxSks, load);
+  // Batang kapasitas: biru sampai 20 SKS, amber 21-24, rose di atas 24.
+  function capBar(load, maxSks) {
     var level = load > 24 ? 'is-over' : load > 20 ? 'is-full' : 'is-ok';
-    var html = '';
-    for (var i = 0; i < cells; i++) html += '<span' + (i < load ? ' class="on"' : '') + '></span>';
-    return '<div class="seg-bar ' + level + '" style="--n:' + cells + ';" aria-hidden="true">' + html + '</div>';
+    var pct = Math.min(100, load / Math.max(maxSks, load, 1) * 100);
+    return '<div class="cap-bar ' + level + '" aria-hidden="true"><span style="width:' + pct.toFixed(1) + '%"></span></div>';
   }
 
   function renderTimeline(a) {
@@ -2121,22 +2156,22 @@ tailwind.config = {
     $('#tl-lead').textContent = lead;
     var cards = [];
     if (ctx.locked) {
-      cards.push('<li class="tl-card is-locked"><div class="tl-head is-locked"><h3 class="font-display text-lg font-bold">Semester ' + ctx.currentSem + ' · ' + offerLabel(otherParity(ctx.startParity)) + '</h3>' +
+      var lockedPar = otherParity(ctx.startParity);
+      cards.push('<li class="tl-card is-locked"><div class="tl-head"><div class="tl-title"><h3 class="text-base font-semibold">Semester ' + ctx.currentSem + '</h3><span class="par par-' + lockedPar + '">' + offerLabel(lockedPar) + '</span></div>' +
         '<span class="pill">' + sc.lockedSks + ' SKS</span></div>' +
-        '<div class="tl-body"><p class="text-sm font-semibold">Sedang berjalan, KRS terkunci.' + (state.params.currentSks === null ? ' SKS-nya belum diisi, dianggap 0.' : '') + '</p></div></li>');
+        '<div class="tl-body"><p class="text-sm sec-lead">Sedang berjalan, KRS terkunci.' + (state.params.currentSks === null ? ' SKS-nya belum diisi, dianggap 0.' : '') + '</p></div></li>');
     }
     sims.forEach(function (s) {
       var extra = s.no > p.normalSem;
       var over = s.load > 24;
-      var headCls = s.parity === 'genap' ? 'is-genap' : 'is-ganjil';
       cards.push('<li class="tl-card' + (extra ? ' is-extra' : '') + '">' +
-        '<div class="tl-head ' + headCls + '"><h3 class="font-display text-lg font-bold">Semester ' + s.no + ' · ' + (s.parity ? offerLabel(s.parity) : '') + '</h3>' +
-          '<span class="pill">' + s.load + ' / ' + p.maxSks + ' SKS</span></div>' +
+        '<div class="tl-head"><div class="tl-title"><h3 class="text-base font-semibold">Semester ' + s.no + '</h3>' + (s.parity ? '<span class="par par-' + s.parity + '">' + offerLabel(s.parity) + '</span>' : '') + '</div>' +
+          '<span class="text-sm font-semibold"><span style="color: var(--ink);">' + s.load + '</span><span class="sec-lead"> / ' + p.maxSks + ' SKS</span></span></div>' +
         '<div class="tl-body">' +
-          segBar(s.load, p.maxSks) +
+          capBar(s.load, p.maxSks) +
           ((extra || over) ? '<p class="flex flex-wrap gap-1.5">' + (extra ? '<span class="chip chip-coral">Semester tambahan</span>' : '') + (over ? '<span class="chip chip-coral">Overload &gt; 24 SKS</span>' : '') + '</p>' : '') +
           (!s.items.length
-            ? '<p class="text-sm font-semibold">Kosong: menunggu semester berikutnya.</p>'
+            ? '<p class="text-sm sec-lead">Kosong: menunggu semester berikutnya.</p>'
             : '<ul class="tl-items">' + s.items.map(function (it) {
                 return '<li><span class="badge badge-' + it.kind + '">' + KIND_LABEL[it.kind] + '</span><span class="tl-name">' + itemName(it) + itemFlags(it) + '</span><span class="pill">' + it.sks + '</span></li>';
               }).join('') + '</ul>') +
@@ -2169,7 +2204,7 @@ tailwind.config = {
     var sN = series(tNormal), sR = tRepair ? series(tRepair) : null;
     var endN = tNormal[tNormal.length - 1].ipk;
     var endR = tRepair ? tRepair[tRepair.length - 1].ipk : null;
-    $('#chart-title').textContent = 'Ke mana IPK bergerak bila IPS Anda ' + fmt(ips) + ' tiap semester?';
+    $('#chart-title').textContent = 'Ke mana IPK-mu bergerak bila IPS tiap semester ' + fmt(ips) + '?';
     var cap = 'Normal berakhir di ' + fmt(endN) + (endN !== null && endN >= G - 1e-9 ? ' (tercapai)' : ' (di bawah target)') + '.';
     if (tRepair) cap += ' Perbaikan berakhir di ' + fmt(endR) + (endR !== null && endR >= G - 1e-9 ? ' (tercapai)' : ' (di bawah target)') + '.';
     cap += ' Target ' + fmt(G) + '.';
@@ -2188,29 +2223,44 @@ tailwind.config = {
     var values = sN.concat(sR || []).concat([G]).filter(function (v) { return v !== null && isFinite(v); });
     var yMin = Math.max(0, Math.floor((Math.min.apply(null, values) - 0.1) * 10) / 10);
     var yMax = Math.min(4, Math.ceil((Math.max.apply(null, values) + 0.1) * 10) / 10);
-    var point = { pointRadius: 5, pointHoverRadius: 7, pointBorderWidth: 2, pointBorderColor: COLORS.ink };
-    // Coral di atas putih hanya 2.7:1, jadi garisnya diberi tepi navy (dataset bayangan di bawahnya).
+    // Isian gradien tipis di bawah garis membantu membedakan dua jalur saat garisnya berdekatan.
+    var fillUnder = function (rgb, alpha) {
+      return function (c) {
+        var area = c.chart.chartArea;
+        if (!area) return 'rgba(' + rgb + ',0)';
+        var g = c.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+        g.addColorStop(0, 'rgba(' + rgb + ',' + alpha + ')');
+        g.addColorStop(1, 'rgba(' + rgb + ',0)');
+        return g;
+      };
+    };
+    var line = function (label, data, color, rgb, alpha, order) {
+      return {
+        label: label, data: data, borderColor: color, backgroundColor: fillUnder(rgb, alpha), fill: 'start', borderWidth: 2.5, tension: 0.25, order: order,
+        pointRadius: 3.5, pointHoverRadius: 6, pointBackgroundColor: '#fff', pointBorderColor: color, pointBorderWidth: 2, pointStyle: 'circle'
+      };
+    };
     var datasets = [
-      Object.assign({ label: 'Jalur normal', data: sN, borderColor: COLORS.coral, backgroundColor: COLORS.coral, borderWidth: 3, tension: 0, order: 1 }, point),
-      { label: '_tepi', data: sN, borderColor: COLORS.ink, borderWidth: 6, pointRadius: 0, pointHoverRadius: 0, tension: 0, order: 3 },
-      { label: 'Target ' + fmt(G), data: labels.map(function () { return G; }), borderColor: COLORS.ink, backgroundColor: 'rgba(0,0,0,0)', borderDash: [6, 5], borderWidth: 2, pointRadius: 0, pointHoverRadius: 0, order: 2 }
+      line('Jalur normal', sN, COLORS.rose, '244,63,94', 0.10, 1),
+      { label: 'Target ' + fmt(G), data: labels.map(function () { return G; }), borderColor: COLORS.ink2, backgroundColor: 'rgba(0,0,0,0)', borderDash: [6, 5], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 0, fill: false, order: 2, pointStyle: 'line' }
     ];
-    if (sR) datasets.unshift(Object.assign({ label: 'Jalur perbaikan', data: sR, borderColor: COLORS.cobalt, backgroundColor: COLORS.cobalt, borderWidth: 3, tension: 0, order: 0 }, point));
-    var font = { family: '"Plus Jakarta Sans", system-ui, sans-serif', size: 13, weight: '600' };
+    if (sR) datasets.unshift(line('Jalur perbaikan', sR, COLORS.cobalt, '37,99,235', 0.16, 0));
+    var font = { family: 'Poppins, system-ui, sans-serif', size: 12, weight: '500' };
     var options = {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
       interaction: { mode: 'index', intersect: false },
       scales: {
-        x: { ticks: { color: COLORS.ink2, font: font }, grid: { color: COLORS.grid }, border: { color: COLORS.ink, width: 2 } },
-        y: { min: yMin, max: yMax, ticks: { color: COLORS.ink2, font: { family: '"JetBrains Mono", monospace', size: 12 }, callback: function (v) { return Number(v).toFixed(2); } }, grid: { color: COLORS.grid }, border: { color: COLORS.ink, width: 2 } }
+        x: { ticks: { color: COLORS.ink2, font: font }, grid: { display: false }, border: { color: COLORS.grid } },
+        y: { min: yMin, max: yMax, ticks: { color: COLORS.ink2, font: font, callback: function (v) { return Number(v).toFixed(2); } }, grid: { color: COLORS.grid }, border: { display: false } }
       },
       plugins: {
-        legend: { labels: { color: COLORS.ink, font: font, boxWidth: 28, filter: function (item) { return item.text !== '_tepi'; } } },
+        legend: { labels: { color: COLORS.ink, font: font, usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 16 } },
         tooltip: {
-          filter: function (item) { return item.dataset.label !== '_tepi'; },
-          callbacks: { label: function (c) { return c.dataset.label + ': ' + (c.parsed.y === null ? '-' : c.parsed.y.toFixed(2)); } }
+          backgroundColor: COLORS.ink, padding: 10, cornerRadius: 8, usePointStyle: true,
+          titleFont: { family: 'Poppins, system-ui, sans-serif', size: 12, weight: '600' }, bodyFont: font,
+          callbacks: { label: function (c) { return ' ' + c.dataset.label + ': ' + (c.parsed.y === null ? '-' : c.parsed.y.toFixed(2)); } }
         }
       }
     };

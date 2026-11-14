@@ -125,6 +125,8 @@ tailwind.config = {
   .switch input:checked + .track { background: var(--cobalt); }
   .switch input:checked + .track .thumb { transform: translateX(1.4rem); background: var(--butter); }
   .switch input:focus-visible + .track { outline: 3px solid var(--cobalt); outline-offset: 3px; }
+  .switch input:disabled { cursor: not-allowed; }
+  .switch input:disabled + .track { opacity: .7; }
   @media (prefers-reduced-motion: reduce) { .switch .track, .switch .thumb, .btn, .tab { transition: none; } }
 
   /* Slider tebal: --pct diisi JavaScript agar bagian kiri berwarna cobalt. */
@@ -339,7 +341,17 @@ tailwind.config = {
         <input id="p-max-range" class="slider mt-2" type="range" min="12" max="30" step="1" value="24" aria-label="Geser batas SKS per semester">
         <div class="flex justify-between mono text-xs font-bold" aria-hidden="true"><span>12</span><span>21</span><span>30</span></div>
         <p id="p-max-err" class="field-error" hidden></p>
+        <p id="p-max-hint" class="field-hint" aria-live="polite" hidden></p>
       </div>
+    </div>
+
+    <div class="mt-5 card card-pad flex flex-wrap items-center gap-x-3 gap-y-1">
+      <label class="check-row" for="p-its">
+        <span class="switch"><input id="p-its" type="checkbox" role="switch" aria-describedby="p-its-hint"><span class="track" aria-hidden="true"><span class="thumb"></span></span></span>
+        <span class="pt-2 font-bold">Pakai aturan akademik ITS</span>
+      </label>
+      <span class="tip-wrap"><button type="button" class="tip-btn" aria-label="Isi aturan akademik ITS" aria-describedby="tip-its">?</button><span role="tooltip" id="tip-its" class="tip">Peraturan Rektor ITS No. 33 Tahun 2025. Nilai yang diakui setelah mengulang adalah nilai terakhir (Pasal 64). Lulus S1 butuh semua nilai minimal C, jadi D dan E wajib diulang (Pasal 69). Mata kuliah semester 1-2 tidak boleh diulang setelah lulus tahap persiapan (Pasal 70). Batas SKS mengikuti IPS semester sebelumnya (Pasal 51).</span></span>
+      <p id="p-its-hint" class="w-full text-sm sec-lead">BC ikut bisa diulang, D/E wajib diulang, mata kuliah semester 1-2 terkunci mulai semester 5.</p>
     </div>
 
     <div class="mt-5 card card-pad grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -590,7 +602,7 @@ tailwind.config = {
   var STORE_KEY = 'rencana-ipk-v1';
   var TA_PATTERN = /tugas akhir|skripsi|thesis|tesis/i;
   var COLORS = { ink: '#0F172A', ink2: '#334155', cobalt: '#2563EB', coral: '#FB7185', grid: '#C7D2FE' };
-  var DEFAULT_PARAMS = { targetSks: 144, maxSks: 24, targetIpk: 3.5, normalSem: 8, currentSem: null, inProgress: true, currentSks: null, nextParity: 'auto' };
+  var DEFAULT_PARAMS = { targetSks: 144, maxSks: 24, targetIpk: 3.5, normalSem: 8, currentSem: null, inProgress: true, currentSks: null, nextParity: 'auto', itsRules: false };
 
   // Data contoh: 39 mata kuliah dari 6 semester (jumlah per semester di DEMO_TERM_SIZES).
   var DEMO_TERM_SIZES = [8, 7, 6, 6, 7, 5];
@@ -629,6 +641,8 @@ tailwind.config = {
     [7, 'Kerja Praktek', 3], [7, 'Agama', 2, 'umum'], [7, 'Kewarganegaraan', 2, 'umum'], [7, 'Aplikasi Teknologi dan Transformasi Digital', 3, 'umum'],
     [8, 'Tugas Akhir', 6, 'umum']
   ];
+  var ITS_PERSIAPAN = {};
+  ITS_MATH_2023.forEach(function (c) { if (c[0] <= 2) ITS_PERSIAPAN[normName(c[1])] = true; });
 
   var state = {
     courses: [],
@@ -741,6 +755,7 @@ tailwind.config = {
       // Versi sebelumnya menyimpan "semester yang sudah selesai".
       else if (Number.isInteger(p.semDone) && p.semDone >= 0 && p.semDone <= 13) state.params.currentSem = p.inProgress ? p.semDone + 1 : Math.max(1, p.semDone);
       if (p.nextParity === 'ganjil' || p.nextParity === 'genap') state.params.nextParity = p.nextParity;
+      if (typeof p.itsRules === 'boolean') state.params.itsRules = p.itsRules;
     }
     if (typeof data.remainingText === 'string') state.remainingText = data.remainingText;
     if (Array.isArray(data.retakeIds)) state.retakeIds = data.retakeIds.filter(function (x) { return typeof x === 'string'; });
@@ -817,16 +832,54 @@ tailwind.config = {
 
   function targetPoints(r) { return r.target && r.target !== 'ips' ? GRADE_POINTS[r.target] : null; }
 
-  function priorityList(courses) {
-    return courses.filter(function (c) { return RETAKE_GRADES[c.grade]; })
+  function termKey(t) { return String(t).toLowerCase().replace('ganjil', 'gasal').replace(/\s+/g, ' ').trim(); }
+
+  // Nomor urut semester reguler di transkrip (1 = semester pertama yang bernilai).
+  function termOrder(courses) {
+    var seen = {}, list = [];
+    courses.forEach(function (c) {
+      if (!c.term || isShortTerm(c.term)) return;
+      var k = termKey(c.term);
+      if (!seen[k]) { seen[k] = true; list.push({ k: k, r: termRank(c.term) }); }
+    });
+    if (list.every(function (x) { return x.r !== null; })) list.sort(function (x, y) { return x.r - y.r; });
+    var idx = {};
+    list.forEach(function (x, i) { idx[x.k] = i + 1; });
+    return idx;
+  }
+
+  function isPersiapan(c, order) {
+    if (ITS_PERSIAPAN[normName(c.name)]) return true;
+    return !!(c.term && !isShortTerm(c.term) && order[termKey(c.term)] <= 2);
+  }
+
+  function retakeCtx(courses, p) {
+    var next = nextInfo(courses, p);
+    return { its: !!p.itsRules, nextNo: next ? next.no : null, order: termOrder(courses) };
+  }
+
+  // Aturan ITS (Peraturan Rektor 33/2025): lulus butuh semua nilai minimal C (Pasal 69),
+  // dan mata kuliah tahap persiapan tidak boleh diulang setelah semester 4 (Pasal 70).
+  function retakeStatus(c, rc) {
+    var g = c.grade;
+    if (!rc || !rc.its) return RETAKE_GRADES[g] ? 'ok' : null;
+    if (g === 'D' || g === 'E') return 'wajib';
+    if (g !== 'BC' && g !== 'C') return null;
+    if (rc.nextNo !== null && rc.nextNo >= 5 && isPersiapan(c, rc.order)) return 'blocked';
+    return 'ok';
+  }
+  function retakeGradesText() { return state.params.itsRules ? 'BC, C, D, atau E' : 'C, D, atau E'; }
+
+  function priorityList(courses, rc) {
+    return courses.filter(function (c) { var st = retakeStatus(c, rc); return st === 'ok' || st === 'wajib'; })
       .map(function (c) {
         var target = c.target && c.target !== 'ips' && GRADE_POINTS[c.target] > GRADE_POINTS[c.grade] ? c.target : 'ips';
         var tp = target === 'ips' ? 4 : GRADE_POINTS[target];
         return { id: c.id, name: c.name, sks: c.sks, grade: c.grade, target: target, gain: c.sks * (tp - GRADE_POINTS[c.grade]),
-          offer: courseOffer(c), offerKnown: offerKnown(c) };
+          offer: courseOffer(c), offerKnown: offerKnown(c), forced: retakeStatus(c, rc) === 'wajib' };
       })
       .sort(function (a, b) {
-        return (b.gain - a.gain) || (b.sks - a.sks) || (GRADE_POINTS[a.grade] - GRADE_POINTS[b.grade]) || a.name.localeCompare(b.name, 'id');
+        return (b.forced - a.forced) || (b.gain - a.gain) || (b.sks - a.sks) || (GRADE_POINTS[a.grade] - GRADE_POINTS[b.grade]) || a.name.localeCompare(b.name, 'id');
       });
   }
 
@@ -1002,8 +1055,13 @@ tailwind.config = {
   function analyze() {
     var sum = summarize(state.courses);
     var p = state.params;
-    var plist = priorityList(state.courses);
-    var a = { sum: sum, p: p, plist: plist };
+    var rc = retakeCtx(state.courses, p);
+    var plist = priorityList(state.courses, rc);
+    var a = {
+      sum: sum, p: p, plist: plist, rc: rc,
+      blocked: state.courses.filter(function (c) { return retakeStatus(c, rc) === 'blocked'; }),
+      forced: plist.filter(function (c) { return c.forced; })
+    };
     if (!sum.count || !state.paramsValid || p.currentSem === null) return a;
 
     var next = nextInfo(state.courses, p);
@@ -1025,6 +1083,7 @@ tailwind.config = {
     if (baseClass === 'aman' || baseClass === 'ringan' || baseClass === 'realistis') recCount = 0;
     else if (baseClass === 'menantang' || baseClass === 'sangat-berat') recCount = Math.max(kMin >= 0 ? kMin : plist.length, Math.min(2, plist.length));
     else recCount = kMin >= 0 ? kMin : plist.length;
+    recCount = Math.max(recCount, a.forced.length);
 
     var recommended = plist.slice(0, recCount);
     var selected;
@@ -1032,7 +1091,7 @@ tailwind.config = {
     else {
       var chosen = {};
       state.retakeIds.forEach(function (id) { chosen[id] = true; });
-      selected = plist.filter(function (c) { return chosen[c.id]; });
+      selected = plist.filter(function (c) { return chosen[c.id] || c.forced; });
     }
     var repair = scenario(sum, p, selected, ctx);
     var active = selected.length ? repair : base;
@@ -1460,8 +1519,11 @@ tailwind.config = {
     }).join('');
   }
 
-  function rowHtml(c, i) {
-    var retake = RETAKE_GRADES[c.grade];
+  var MARK_TEXT = { ok: 'bisa diulang', wajib: 'wajib diulang', blocked: 'tahap persiapan' };
+
+  function rowHtml(c, i, rc) {
+    var st = retakeStatus(c, rc);
+    var retake = st === 'ok' || st === 'wajib';
     var id = esc(c.id);
     return '<tr data-id="' + id + '" class="' + (retake ? 'is-retake' : '') + '">' +
       '<td class="c-no mono">' + (i + 1) + '</td>' +
@@ -1472,7 +1534,7 @@ tailwind.config = {
         '<select id="s-' + id + '" class="field mono" data-field="sks">' + optionList([1, 2, 3, 4, 5, 6], c.sks) + '</select></td>' +
       '<td class="c-grade"><label class="cell-label" for="g-' + id + '">Nilai</label><div class="grade-wrap">' +
         '<select id="g-' + id + '" class="field mono" data-field="grade">' + optionList(GRADES, c.grade) + '</select>' +
-        '<span class="retake-mark"' + (retake ? '' : ' hidden') + '>bisa diulang</span></div></td>' +
+        '<span class="retake-mark"' + (st ? '' : ' hidden') + '>' + (st ? MARK_TEXT[st] : '') + '</span></div></td>' +
       '<td class="c-offer"><label class="cell-label" for="o-' + id + '">Ditawarkan</label>' +
         '<select id="o-' + id + '" class="field" data-field="offer">' + offerOptions(courseOffer(c), !offerKnown(c)) + '</select></td>' +
       '<td class="c-mutu mono"><span class="cell-label">Mutu</span><span data-mutu>' + fmt(c.sks * GRADE_POINTS[c.grade], 1) + '</span></td>' +
@@ -1484,8 +1546,9 @@ tailwind.config = {
     var body = $('#tx-body');
     var rows = state.courses;
     var visible = state.showAll ? rows : rows.slice(0, ROW_LIMIT);
+    var rc = retakeCtx(rows, state.params);
     body.innerHTML = rows.length
-      ? visible.map(rowHtml).join('')
+      ? visible.map(function (c, i) { return rowHtml(c, i, rc); }).join('')
       : '<tr><td colspan="7" class="empty-cell py-6 sec-lead">Tabel masih kosong. Unggah transkrip, muat data contoh, atau tambah mata kuliah lewat formulir di bawah.</td></tr>';
     var toggle = $('#rows-toggle');
     toggle.hidden = rows.length <= ROW_LIMIT;
@@ -1496,12 +1559,22 @@ tailwind.config = {
     $('#demo-note').hidden = !state.isDemo || !rows.length;
   }
 
-  function updateRow(tr, c) {
-    var retake = !!RETAKE_GRADES[c.grade];
-    tr.classList.toggle('is-retake', retake);
-    tr.querySelector('.retake-mark').hidden = !retake;
+  function updateRow(tr, c, rc) {
+    var st = retakeStatus(c, rc || retakeCtx(state.courses, state.params));
+    tr.classList.toggle('is-retake', st === 'ok' || st === 'wajib');
+    var mark = tr.querySelector('.retake-mark');
+    mark.hidden = !st;
+    mark.textContent = st ? MARK_TEXT[st] : '';
     tr.querySelector('[data-mutu]').textContent = fmt(c.sks * GRADE_POINTS[c.grade], 1);
     tr.querySelector('[data-action="delete"]').setAttribute('aria-label', 'Hapus ' + c.name);
+  }
+
+  // Status mengulang bisa berubah saat semester atau aturan ITS diganti, jadi baris yang tampil disegarkan di tempat.
+  function syncRetakeMarks(rc) {
+    document.querySelectorAll('#tx-body tr[data-id]').forEach(function (tr) {
+      var c = state.courses.find(function (x) { return x.id === tr.dataset.id; });
+      if (c) updateRow(tr, c, rc);
+    });
   }
 
   // Render: Kategori A
@@ -1537,6 +1610,7 @@ tailwind.config = {
     var p = state.params;
     p.inProgress = $('#p-inprog').checked;
     p.nextParity = $('#p-next').value;
+    p.itsRules = $('#p-its').checked;
     $('#p-current-wrap').hidden = !p.inProgress;
     var fields = [
       { id: 'p-total', key: 'targetSks', ok: function (v, raw) { return raw !== '' && Number.isInteger(v) && v >= 1 && v <= 300; }, msg: 'Isi bilangan bulat 1 sampai 300.' },
@@ -1595,6 +1669,7 @@ tailwind.config = {
     $('#p-current').value = p.currentSks === null ? '' : p.currentSks;
     $('#p-current-wrap').hidden = !p.inProgress;
     $('#p-next').value = p.nextParity;
+    $('#p-its').checked = !!p.itsRules;
     $('#remaining').value = state.remainingText;
     syncSlidersFromParams();
   }
@@ -1605,6 +1680,19 @@ tailwind.config = {
     $('#p-cur-hint').textContent = det
       ? 'Transkrip: ' + det.count + ' semester bernilai (' + det.first + (det.count > 1 ? ' sampai ' + det.last : '') + ').'
       : 'Semester yang sedang ditempuh atau baru selesai.';
+    var maxHint = $('#p-max-hint');
+    maxHint.hidden = !p.itsRules;
+    if (p.itsRules) {
+      var lastIps = null;
+      if (det && !p.inProgress) {
+        var lastKey = termKey(det.last);
+        lastIps = summarize(state.courses.filter(function (c) { return c.term && termKey(c.term) === lastKey; })).ipk;
+      }
+      var cap = lastIps === null ? null : lastIps < 2.5 ? 18 : lastIps < 3 ? 20 : lastIps < 3.5 ? 22 : 24;
+      maxHint.textContent = cap !== null
+        ? 'Aturan ITS: IPS ' + det.last + ' ' + fmt(lastIps) + ', jadi batas semester depan ' + cap + ' SKS.'
+        : 'Aturan ITS: batas ikut IPS semester ini. Di bawah 2.50: 18, di bawah 3.00: 20, di bawah 3.50: 22, selebihnya 24 SKS.';
+    }
     var next = nextInfo(state.courses, p);
     var opt = $('#p-next').querySelector('option[value="auto"]');
     if (!next) {
@@ -1651,6 +1739,7 @@ tailwind.config = {
       : 'Pilihan Anda sendiri.';
     var unknown = a.plist.filter(function (c) { return !c.offerKnown; }).length;
     if (unknown) text += ' ' + unknown + ' mata kuliah belum diketahui semester penawarannya.';
+    if (a.p.itsRules) text += ' Aturan ITS: nilai terakhir yang diakui, meski lebih rendah.';
     $('#picker-hint').textContent = text;
   }
 
@@ -1660,7 +1749,7 @@ tailwind.config = {
     $('#picker-actions').hidden = !a.plist.length;
     if (!a.plist.length) {
       $('#picker-hint').textContent = '';
-      el.innerHTML = '<p class="sec-lead">Tidak ada nilai C, D, atau E di transkrip, jadi tidak ada yang perlu diulang.</p>';
+      el.innerHTML = '<p class="sec-lead">Tidak ada nilai ' + retakeGradesText() + ' yang bisa diulang.</p>' + blockedHtml(a);
       return;
     }
     var selectedIds = {};
@@ -1673,17 +1762,25 @@ tailwind.config = {
       var lift = finalK > 0 ? c.gain / finalK : 0;
       return '<div class="picker-item">' +
         '<div class="picker-main">' +
-          '<label class="switch" for="sw-' + id + '"><input id="sw-' + id + '" type="checkbox" role="switch" value="' + id + '"' + (selectedIds[c.id] ? ' checked' : '') + ' aria-describedby="pd-' + id + '"><span class="track" aria-hidden="true"><span class="thumb"></span></span></label>' +
+          '<label class="switch" for="sw-' + id + '"><input id="sw-' + id + '" type="checkbox" role="switch" value="' + id + '"' + (selectedIds[c.id] || c.forced ? ' checked' : '') + (c.forced ? ' disabled' : '') + ' aria-describedby="pd-' + id + '"><span class="track" aria-hidden="true"><span class="thumb"></span></span></label>' +
           '<span class="stamp">' + c.grade + '</span>' +
           '<span class="min-w-0 flex-1"><label for="sw-' + id + '" class="block font-bold break-words cursor-pointer">' + (i + 1) + '. ' + esc(c.name) + '</label>' +
-          '<span id="pd-' + id + '" class="mt-0.5 flex flex-wrap gap-1.5"><span class="pill">' + c.sks + ' SKS</span><span class="pill" style="background: var(--mint);">+' + fmt(lift, 3) + ' IPK</span></span></span>' +
+          '<span id="pd-' + id + '" class="mt-0.5 flex flex-wrap gap-1.5"><span class="pill">' + c.sks + ' SKS</span><span class="pill" style="background: var(--mint);">+' + fmt(lift, 3) + ' IPK</span>' +
+          (c.forced ? '<span class="badge badge-ulang">Wajib: syarat lulus minimal C</span>' : '') + '</span></span>' +
         '</div>' +
         '<div class="picker-opts">' +
           '<div><label for="po-' + id + '">Ditawarkan</label><select id="po-' + id + '" class="field" data-offer="' + id + '">' + offerOptions(c.offer, !c.offerKnown) + '</select></div>' +
           '<div><label for="pt-' + id + '">Target nilai</label><select id="pt-' + id + '" class="field" data-target="' + id + '">' + pairOptions(targets, c.target) + '</select></div>' +
         '</div>' +
         '</div>';
-    }).join('');
+    }).join('') + blockedHtml(a);
+  }
+
+  function blockedHtml(a) {
+    if (!a.blocked || !a.blocked.length) return '';
+    return '<div class="notice mt-4"><p class="font-bold">Tidak bisa diulang lagi: tahap persiapan</p>' +
+      '<p class="mt-1 text-sm">Mata kuliah semester 1-2 tidak boleh diulang setelah lulus tahap persiapan (Peraturan Akademik ITS 2025, Pasal 70).</p>' +
+      '<ul class="mt-2 text-sm list-disc pl-5">' + a.blocked.map(function (c) { return '<li>' + esc(c.name) + ' <span class="mono font-bold">' + c.grade + '</span></li>'; }).join('') + '</ul></div>';
   }
 
   // Render: hasil
@@ -1711,6 +1808,7 @@ tailwind.config = {
           : ' Dengan ' + a.selected.length + ' mata kuliah ulang: ' + hl(fmt(x2)) + (x2 > 4 ? ', masih di atas 4.00.' : '.');
       }
     }
+    if (a.forced.length) html += ' Aturan ITS: ' + a.forced.length + ' mata kuliah bernilai D/E wajib diulang.';
     var finish = a.selected.length && a.repair.finishNo !== null ? a.repair.finishNo : a.base.finishNo;
     if (finish !== null) html += ' Lulus semester ' + hl(finish) + '.';
     $('#verdict').innerHTML = html;
@@ -1766,7 +1864,9 @@ tailwind.config = {
       extra = '<p class="mt-4 text-sm font-semibold">' + lines.join(' ') + '</p>';
     }
     $('#compare').innerHTML =
-      cardHtml('Jalur normal', 'Tanpa mengulang', base, a.baseClass, '', a.p, 'var(--peri)') +
+      cardHtml('Jalur normal', 'Tanpa mengulang', base, a.baseClass, a.forced.length
+        ? '<p class="mt-4"><span class="chip chip-coral">Belum memenuhi syarat lulus</span></p><p class="mt-2 text-sm font-semibold">Masih ada ' + a.forced.length + ' nilai D/E, padahal aturan ITS mensyaratkan semua nilai minimal C.</p>'
+        : '', a.p, 'var(--peri)') +
       cardHtml('Jalur perbaikan', a.selected.length ? 'Mengulang ' + a.selected.length + ' mata kuliah' : 'Belum ada yang dinyalakan', rep, a.repairClass, extra, a.p, 'var(--sky)');
   }
 
@@ -1846,7 +1946,7 @@ tailwind.config = {
         steps.push(pacing);
         if (semStep()) steps.push(semStep());
       } else {
-        steps.push('Tidak ada nilai C, D, atau E untuk diulang, jadi target dikejar lewat IPS ' + fmt(x1) + '.');
+        steps.push('Tidak ada nilai ' + retakeGradesText() + ' yang bisa diulang, jadi target dikejar lewat IPS ' + fmt(x1) + '.');
       }
     } else {
       title = 'Target ' + G + ' tidak tercapai tanpa mengulang';
@@ -1872,6 +1972,9 @@ tailwind.config = {
         if (semStep()) steps.push(semStep());
         steps.push('Bicarakan rencana ini dengan dosen pembimbing akademik.');
       }
+    }
+    if (a.forced.length) {
+      steps.unshift('Aturan ITS: ' + a.forced.map(function (c) { return c.name + ' (' + c.grade + ')'; }).join(', ') + ' wajib diulang, karena syarat lulus semua nilai minimal C.');
     }
     var tone = cls === 'mustahil' || cls === 'sangat-berat';
     return '<div class="flex flex-wrap items-center gap-2"><span class="chip ' + CLASS_CHIP[cls] + '">' + CLASS_LABEL[cls] + '</span>' + (tone ? '<span class="chip chip-coral">Perlu tindakan</span>' : '') + '</div>' +
@@ -1927,7 +2030,7 @@ tailwind.config = {
     var hint = $('#prio-hint');
     if (!a.plist.length) {
       hint.textContent = '';
-      el.innerHTML = '<li class="block"><p>Tidak ada nilai C, D, atau E di transkrip.</p></li>';
+      el.innerHTML = '<li class="block"><p>Tidak ada nilai ' + retakeGradesText() + ' yang bisa diulang.</p></li>';
       return;
     }
     var minText = a.kMin === 0 ? 'Tanpa mengulang pun kebutuhan IPS sudah di bawah ' + REALISTIC_IPS.toFixed(2) + '.'
@@ -1943,7 +2046,7 @@ tailwind.config = {
     var mandatory = a.baseClass === 'mustahil';
     el.innerHTML = a.plist.map(function (c, i) {
       var sc = a.xs[i + 1];
-      var tag = recIds[c.id] ? '<span class="chip ' + (mandatory ? 'chip-coral' : 'chip-butter') + '">' + (mandatory ? 'Wajib diulang' : 'Disarankan') + '</span>' : '<span class="chip chip-white">Opsional</span>';
+      var tag = c.forced ? '<span class="chip chip-coral">Wajib: syarat lulus</span>' : recIds[c.id] ? '<span class="chip ' + (mandatory ? 'chip-coral' : 'chip-butter') + '">' + (mandatory ? 'Wajib diulang' : 'Disarankan') + '</span>' : '<span class="chip chip-white">Opsional</span>';
       var parts = [];
       if (sc.required !== null) parts.push('IPS ' + fmt(sc.required));
       parts.push('lulus ' + finishLabel(a.p, sc.finishNo));
@@ -2126,6 +2229,7 @@ tailwind.config = {
     readParams();
     var a = analyze();
     lastAnalysis = a;
+    syncRetakeMarks(a.rc);
     renderSummary(a);
     renderPositionHints();
     renderRemainingInfo(a);
@@ -2401,13 +2505,25 @@ tailwind.config = {
         refresh();
       });
     });
+    $('#p-its').addEventListener('change', function () {
+      state.retakeIds = null;
+      state.assumedIps = null;
+      readParams();
+      save();
+      refresh();
+    });
 
     $('#preset-its').addEventListener('click', function () {
       if (state.remainingText.trim() && !window.confirm('Ganti isi daftar sisa mata kuliah dengan kurikulum S1 Matematika ITS 2023?')) return;
       state.remainingText = itsPresetText(state.courses, state.params);
       $('#remaining').value = state.remainingText;
+      if (!state.params.itsRules) {
+        $('#p-its').checked = true;
+        state.retakeIds = null;
+        readParams();
+      }
       save();
-      refresh({ picker: false });
+      refresh();
       $('#remaining').focus();
     });
     var remTimer = null;
